@@ -1,0 +1,2348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Garajku — vehicle logbook</title>
+<meta name="theme-color" content="#0F1418">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Garajku">
+<meta name="format-detection" content="telephone=no">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icon-180.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0F1418; --surface:#171E23; --surface2:#1E272D; --line:#2C383F;
+  --text:#E6EDF0; --muted:#8A9BA4; --dim:#5E7078;
+  --ok:#4FB286; --soon:#E0A33E; --over:#E0574C; --idle:#5E7078;
+  --amber:#E0A33E;
+  /* semantic aliases */
+  --bg-amber:#1C170E; --bg-over:#1A0E0D; --bg-soon:#1C170E;
+  --bg-code:#111A1F; --bg-chat-user:#1A2830;
+  --border-amber:#5C4A1A; --border-over:#5C2A24; --border-soon:#5C4A1A;
+  --avatar-bg:#1E2E36;
+  --display:'Barlow Condensed',Impact,sans-serif;
+  --body:'IBM Plex Sans',system-ui,-apple-system,sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,monospace;
+  --r:14px; --pad:16px;
+  --safe-b:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+button,a,.chip,.card.tap{touch-action:manipulation}
+html,body{margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{
+  background:var(--bg); color:var(--text); font-family:var(--body);
+  font-size:15px; line-height:1.45; overscroll-behavior-y:none;
+  padding-bottom:calc(76px + var(--safe-b));
+}
+h1,h2,h3,.disp{font-family:var(--display);font-weight:600;letter-spacing:.02em;margin:0}
+.mono{font-family:var(--mono)}
+button,input,select,textarea{font-family:inherit;font-size:16px;color:inherit}
+button{cursor:pointer;border:0;background:none}
+a{color:var(--amber)}
+::-webkit-scrollbar{width:0;height:0}
+
+/* ---------- app chrome ---------- */
+header.top{
+  position:sticky;top:0;z-index:40;background:linear-gradient(180deg,var(--bg) 72%,transparent);
+  padding:calc(10px + env(safe-area-inset-top,0px)) var(--pad) 10px;
+  display:flex;align-items:flex-end;justify-content:space-between;gap:12px;
+}
+header.top .eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:.22em;color:var(--dim);text-transform:uppercase}
+header.top h1{font-size:30px;line-height:.95;text-transform:uppercase}
+.wrap{padding:0 var(--pad) 24px;max-width:680px;margin:0 auto}
+
+nav.tabs{
+  position:fixed;left:0;right:0;bottom:0;z-index:50;
+  display:grid;grid-template-columns:repeat(6,1fr);
+  background:rgba(15,20,24,.94);backdrop-filter:blur(14px);
+  border-top:1px solid var(--line);padding-bottom:var(--safe-b);
+}
+nav.tabs button{padding:9px 1px 10px;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--dim);font-size:9px;letter-spacing:.02em;text-transform:uppercase;font-family:var(--mono)}
+nav.tabs button svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+nav.tabs button.on{color:var(--amber)}
+nav.tabs button::before{content:"";width:20px;height:2px;border-radius:2px;background:transparent;margin-bottom:2px}
+nav.tabs button.on::before{background:var(--amber)}
+
+/* ---------- odometer signature ---------- */
+.odo{display:flex;align-items:baseline;gap:6px}
+.odo .digits{display:inline-flex;gap:2px}
+.odo .d{
+  font-family:var(--mono);font-weight:600;font-size:23px;line-height:1;
+  background:linear-gradient(180deg,#26333A,#131A1F);border:1px solid #38474F;
+  border-radius:3px;padding:5px 4px 4px;min-width:19px;text-align:center;
+  box-shadow:inset 0 -6px 8px -6px #000, inset 0 6px 8px -6px rgba(255,255,255,.14);
+}
+.odo .d.last{background:linear-gradient(180deg,#3A2E18,#1C170E);border-color:#5C4A26;color:var(--amber)}
+.odo .unit{font-family:var(--mono);font-size:11px;color:var(--dim);letter-spacing:.16em}
+
+/* ---------- cards ---------- */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px;margin-bottom:10px}
+.card.tap:active{background:var(--surface2)}
+.row{display:flex;align-items:center;gap:10px}
+.between{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.grow{flex:1;min-width:0}
+.trunc{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.muted{color:var(--muted)}.dim{color:var(--dim)}
+.small{font-size:12.5px}.tiny{font-size:11px}
+.label{font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--dim)}
+.sect{margin:22px 0 9px;display:flex;align-items:center;gap:10px}
+.sect h2{font-size:15px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-family:var(--mono);font-weight:500}
+.sect .rule{flex:1;height:1px;background:var(--line)}
+
+/* gauge bar */
+.gauge{height:5px;border-radius:99px;background:#222D33;overflow:hidden;margin-top:9px;position:relative}
+.gauge i{display:block;height:100%;border-radius:99px;background:var(--c,var(--ok));transition:width .5s cubic-bezier(.2,.8,.2,1)}
+.gauge.striped i{background-image:repeating-linear-gradient(115deg,rgba(0,0,0,.22) 0 5px,transparent 5px 10px)}
+
+.pill{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:3px 7px;border-radius:99px;border:1px solid var(--c,var(--line));color:var(--c,var(--muted));white-space:nowrap}
+.dot{width:7px;height:7px;border-radius:99px;background:var(--c,var(--idle));flex:none}
+.st-ok{--c:var(--ok)}.st-soon{--c:var(--soon)}.st-over{--c:var(--over)}.st-idle{--c:var(--idle)}
+
+.big{font-family:var(--display);font-size:27px;line-height:1}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;border-radius:10px;padding:11px 14px;font-size:14px;font-weight:500;border:1px solid var(--line);background:var(--surface2);color:var(--text)}
+.btn:active{transform:scale(.98)}
+.btn.pri{background:var(--amber);color:#16120A;border-color:var(--amber);font-weight:600}
+.btn.ghost{background:transparent}
+.btn.dang{color:var(--over);border-color:#4A2A27;background:transparent}
+.btn.sm{padding:7px 11px;font-size:13px;border-radius:9px}
+.btn.full{width:100%}
+.btn svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.fab{position:fixed;right:16px;bottom:calc(88px + var(--safe-b));z-index:45;width:54px;height:54px;border-radius:50%;background:var(--amber);color:#16120A;display:grid;place-items:center;box-shadow:0 8px 22px rgba(0,0,0,.5)}
+.fab svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:2.4;stroke-linecap:round}
+
+.chips{display:flex;gap:7px;overflow-x:auto;padding:2px 0 4px;margin:0 calc(var(--pad)*-1);padding-left:var(--pad);padding-right:var(--pad)}
+.chip{flex:none;padding:7px 13px;border-radius:99px;border:1px solid var(--line);background:var(--surface);font-size:13px;color:var(--muted);white-space:nowrap}
+.chip.on{background:var(--text);color:#0F1418;border-color:var(--text);font-weight:600}
+
+/* forms + sheet */
+.scrim{position:fixed;inset:0;background:rgba(6,9,11,.72);z-index:60;opacity:0;pointer-events:none;transition:opacity .22s}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:61;background:var(--surface);border-radius:20px 20px 0 0;border-top:1px solid var(--line);
+  max-height:92vh;overflow:auto;transform:translateY(102%);transition:transform .28s cubic-bezier(.2,.9,.25,1);
+  padding:8px var(--pad) calc(20px + var(--safe-b));max-width:680px;margin:0 auto}
+.sheet.on{transform:translateY(0)}
+.grab{width:38px;height:4px;border-radius:9px;background:var(--line);margin:6px auto 12px}
+.sheet h3{font-size:21px;text-transform:uppercase;margin-bottom:2px}
+.f{margin-bottom:12px}
+.f label{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);margin-bottom:5px}
+.f input,.f select,.f textarea{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:11px 12px;outline:none}
+.f input:focus,.f select:focus,.f textarea:focus{border-color:var(--amber)}
+.f textarea{min-height:74px;resize:vertical}
+.f2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.hint{font-size:11.5px;color:var(--dim);margin-top:5px}
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.seg button{flex:1;min-width:80px;padding:9px;border-radius:9px;border:1px solid var(--line);background:var(--bg);font-size:13px;color:var(--muted)}
+.seg button.on{border-color:var(--amber);color:var(--amber);background:var(--bg-amber)}
+
+.empty{text-align:center;padding:34px 16px;border:1px dashed var(--line);border-radius:var(--r);color:var(--muted)}
+.empty .big{color:var(--text);margin-bottom:6px}
+.toast{position:fixed;left:50%;transform:translateX(-50%) translateY(24px);bottom:calc(96px + var(--safe-b));z-index:80;background:var(--text);color:#0F1418;padding:10px 16px;border-radius:99px;font-size:13.5px;font-weight:600;opacity:0;transition:.25s;pointer-events:none;max-width:88vw;text-align:center}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+.thumbs{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}
+.thumbs img{width:62px;height:62px;object-fit:cover;border-radius:9px;border:1px solid var(--line)}
+.vpic{background:linear-gradient(160deg,#202B31,#151C21);background-size:cover;background-position:center;
+  border:1px solid var(--line);border-radius:11px;display:grid;place-items:center;flex:none;overflow:hidden;position:relative}
+.vpic.sm{width:64px;height:64px}
+.vpic.lg{width:100%;height:168px;border-radius:12px;margin-bottom:12px;align-items:end;justify-items:start}
+.vpic svg{width:56%;height:56%;stroke:#3E525C;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.vpic.lg svg{width:104px;height:104px}
+.vpic.has svg{display:none}
+.vpic.lg::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 42%,rgba(10,14,17,.86))}
+.vpic.lg .ov{position:relative;z-index:2;padding:12px;display:flex;align-items:center;gap:9px}
+.vpic .cam{position:absolute;z-index:3;right:8px;top:8px;background:rgba(12,16,19,.72);border:1px solid var(--line);
+  border-radius:8px;padding:5px 8px;font-size:11px;color:var(--text);font-family:var(--mono);letter-spacing:.08em}
+/* ---------- drive mode ---------- */
+body.noscroll{overflow:hidden}
+.drive{position:fixed;inset:0;z-index:70;background:radial-gradient(130% 90% at 50% 0%,#17222A 0%,#0B0F12 62%);
+  display:none;flex-direction:column;padding:calc(10px + env(safe-area-inset-top,0px)) 18px calc(16px + env(safe-area-inset-bottom,0px));
+  overflow-y:auto;-webkit-overflow-scrolling:touch}
+.drive.on{display:flex}
+.drive #driveBody{display:flex;flex-direction:column;flex:1;max-width:520px;margin:0 auto;width:100%}
+.dvtop{display:flex;align-items:center;gap:10px;flex:none}
+.dvx{width:34px;height:34px;border-radius:10px;border:1px solid var(--line);color:var(--muted);font-size:15px;flex:none}
+.dvveh{font-family:var(--display);font-size:19px;text-transform:uppercase;letter-spacing:.04em;flex:1;text-align:center}
+.dvstat{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--dim);flex:none;max-width:40%;text-align:right;line-height:1.3}
+.dial{position:relative;width:min(74vw,282px);aspect-ratio:1;margin:14px auto 6px;flex:none}
+.dial svg{width:100%;height:100%;transform:rotate(135deg)}
+.dial .trk{fill:none;stroke:#1C262C;stroke-width:13;stroke-linecap:round;
+  stroke-dasharray:540;stroke-dashoffset:135}
+.dial .val{fill:none;stroke:var(--amber);stroke-width:13;stroke-linecap:round;
+  transition:stroke-dashoffset .35s cubic-bezier(.2,.8,.2,1)}
+.dial.over .val{stroke:var(--over)}
+.dial.over .dsp{color:var(--over)}
+.dnum{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.dsp{font-family:var(--mono);font-weight:600;font-size:clamp(56px,19vw,86px);line-height:.9;
+  font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.dunit{font-family:var(--mono);font-size:11px;letter-spacing:.3em;color:var(--dim);margin-top:7px}
+.dstats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;text-align:center;
+  padding:14px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);flex:none}
+.dstats .big{font-size:23px;margin-top:3px}
+.dstats .u{font-size:11px;color:var(--dim);margin-left:3px;font-family:var(--mono)}
+.dvpick{padding:16px 0;flex:1}
+.dvact{flex:none;padding-top:12px}
+@media (max-height:680px){.dial{width:min(52vw,210px);margin:8px auto 2px}.dsp{font-size:clamp(44px,14vw,64px)}}
+
+/* ---------- tyre tracker ---------- */
+.tyrediag{display:grid;gap:8px;margin-bottom:10px}
+.tyrediag.car{grid-template-columns:1fr 1fr;grid-template-rows:auto auto}
+.tyrediag.moto{grid-template-columns:1fr;max-width:200px;margin:0 auto 10px}
+.tyreslot{background:var(--surface);border:2px solid var(--line);border-radius:14px;
+  padding:13px 10px;text-align:center;cursor:pointer;min-height:82px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px}
+.tyreslot.empty{border-style:dashed;opacity:.55}
+.tyreslot.st-ok{border-color:#2A4A37}
+.tyreslot.st-soon{border-color:#5C4A1A}
+.tyreslot.st-over{border-color:#5C2A24;background:var(--bg-over)}
+.tyrepos{font-family:var(--mono);font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--dim)}
+.tyrepsi{font-size:22px;font-family:var(--mono);font-weight:600;line-height:1}
+.tyretgt{font-size:10px}
+.tyretread{font-size:10px;font-family:var(--mono);padding:2px 6px;border-radius:99px;margin-top:2px}
+.tyretread.st-soon{background:var(--bg-soon);color:var(--soon)}
+.tyretread.st-over{background:var(--bg-over);color:var(--over)}
+
+/* ---------- chat surface ---------- */
+#view.chat{display:flex;flex-direction:column;padding-bottom:0;
+  height:calc(100vh - 148px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));
+  height:calc(100dvh - 148px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px))}
+.chatbar{flex:none;padding-bottom:6px;border-bottom:1px solid var(--line);margin-bottom:4px}
+.thread{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:8px 0 4px;scroll-behavior:smooth;overscroll-behavior:contain}
+.msg{margin-bottom:16px;animation:fade .25s ease both}
+.msg.user{display:flex;justify-content:flex-end}
+.ubub{max-width:85%;background:var(--bg-chat-user);border:1px solid #35464F;border-radius:15px 15px 4px 15px;
+  padding:10px 13px;font-size:14.5px;line-height:1.5;white-space:pre-wrap;word-break:break-word}
+.uatt{display:flex;gap:5px;margin-bottom:7px}
+.uatt span{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;
+  border:1px solid #4A5D67;border-radius:99px;padding:2px 7px;color:var(--muted)}
+.msg.bot .who{display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:10px;
+  letter-spacing:.2em;text-transform:uppercase;color:var(--dim);margin-bottom:7px}
+.avatar{width:19px;height:19px;border-radius:6px;background:var(--avatar-bg);border:1px solid var(--border-amber);display:grid;place-items:center}
+.avatar svg{width:12px;height:12px;stroke:var(--amber);fill:none;stroke-width:1.9}
+.msg.bot .body{font-size:15px;line-height:1.62}
+.msg.bot .body p{margin:0 0 11px}
+.msg.bot .body p:last-child{margin-bottom:0}
+.msg.bot .body h4{font-family:var(--display);font-size:17px;text-transform:uppercase;letter-spacing:.05em;margin:16px 0 7px;color:var(--text)}
+.msg.bot .body ul,.msg.bot .body ol{margin:0 0 11px;padding-left:20px}
+.msg.bot .body li{margin-bottom:6px}
+.msg.bot .body li::marker{color:var(--amber)}
+.msg.bot .body strong{color:var(--amber);font-weight:600}
+.msg.bot .body em{color:var(--muted);font-style:italic}
+.msg.bot .body code{font-family:var(--mono);font-size:13px;background:var(--bg-code);border:1px solid var(--line);padding:1px 5px;border-radius:5px}
+.msg.bot .body pre{font-family:var(--mono);font-size:12.5px;background:var(--bg-code);border:1px solid var(--line);
+  padding:11px;border-radius:10px;overflow-x:auto;white-space:pre;margin:0 0 11px}
+.acts{display:flex;gap:14px;margin-top:11px;opacity:.72}
+.acts button{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+.acts button:active{color:var(--amber)}
+.caret{display:inline-block;width:8px;height:15px;background:var(--amber);margin-left:2px;vertical-align:-2px;animation:blink .9s steps(2) infinite}
+@keyframes blink{50%{opacity:0}}
+.dots{display:inline-flex;gap:5px;padding:4px 0}
+.dots i{width:6px;height:6px;border-radius:50%;background:var(--dim);animation:bob 1.1s infinite}
+.dots i:nth-child(2){animation-delay:.15s}.dots i:nth-child(3){animation-delay:.3s}
+@keyframes bob{0%,60%,100%{opacity:.3;transform:translateY(0)}30%{opacity:1;transform:translateY(-4px)}}
+.welcome{text-align:center;padding:26px 4px 8px}
+.wicon{width:46px;height:46px;border-radius:14px;background:var(--avatar-bg);border:1px solid var(--border-amber);display:grid;place-items:center;margin:0 auto 13px}
+.wicon svg{width:24px;height:24px;stroke:var(--amber);fill:none;stroke-width:1.7}
+.welcome h2{font-size:23px;text-transform:uppercase;margin-bottom:7px}
+.welcome p{max-width:330px;margin:0 auto}
+.sugg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:18px;text-align:left}
+.sugg button{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:11px;display:flex;flex-direction:column;gap:3px}
+.sugg button:active{background:var(--surface2)}
+.sugg b{font-size:13px;font-weight:500;line-height:1.3}
+.sugg span{font-size:11px;color:var(--dim);line-height:1.35}
+.composer{flex:none;padding:9px 0 2px;background:var(--bg);border-top:1px solid var(--line)}
+.inputline{display:flex;align-items:flex-end;gap:6px}
+.composer textarea{flex:1;min-height:44px;max-height:132px;background:var(--surface);border:1px solid var(--line);
+  border-radius:14px;padding:12px 13px;resize:none;outline:none;font-size:16px;line-height:1.35}
+.composer textarea:focus{border-color:#48606C}
+.iconbtn{width:38px;height:38px;border-radius:11px;border:1px solid var(--line);background:var(--surface);
+  display:grid;place-items:center;flex:none;margin-bottom:3px}
+.iconbtn svg{width:18px;height:18px;stroke:var(--muted);fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.iconbtn:active{background:var(--surface2)}
+.iconbtn.rec{border-color:var(--over);background:var(--bg-over)}
+.iconbtn.rec svg{stroke:var(--over)}
+.sendbtn{width:44px;height:44px;border-radius:14px;background:var(--amber);display:grid;place-items:center;flex:none}
+.sendbtn svg{width:20px;height:20px;stroke:#16120A;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.sendbtn.stop{background:var(--surface2);border:1px solid var(--line)}
+.sendbtn.stop svg{stroke:var(--text);fill:var(--text)}
+.attrow{display:flex;gap:7px;margin-bottom:8px;flex-wrap:wrap}
+.att{position:relative;width:58px;height:58px;border-radius:11px;border:1px solid var(--line);background:var(--surface2);
+  display:grid;place-items:center;overflow:hidden;cursor:pointer;text-align:center}
+.att img{width:100%;height:100%;object-fit:cover}
+.att .attk{font-family:var(--mono);font-size:8.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);line-height:1.5}
+.att .x{position:absolute;top:-2px;right:4px;color:#fff;font-size:16px;text-shadow:0 1px 4px #000}
+.recbar{display:flex;align-items:center;gap:9px;padding:9px 11px;border:1px solid var(--over);border-radius:12px;margin-bottom:8px;font-size:13px}
+.recdot{width:9px;height:9px;border-radius:50%;background:var(--over);animation:pulse 1s infinite}
+@keyframes pulse{50%{opacity:.2}}
+.spin{width:15px;height:15px;border:2px solid rgba(255,255,255,.25);border-top-color:var(--amber);border-radius:50%;animation:sp .7s linear infinite;display:inline-block}
+@keyframes sp{to{transform:rotate(360deg)}}
+.fade{animation:fade .3s ease both}
+@keyframes fade{from{opacity:0;transform:translateY(7px)}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+hr.sep{border:0;border-top:1px solid var(--line);margin:12px 0}
+.kv{display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px dashed #232E34;font-size:13.5px}
+.kv:last-child{border-bottom:0}
+.kv b{font-family:var(--mono);font-weight:500}
+.plate{display:inline-block;font-family:var(--display);font-weight:700;font-size:16px;letter-spacing:.13em;
+  color:#0F1418;background:linear-gradient(180deg,#F2F4F2,#CFD6D2);border:1px solid #98A3A0;border-radius:5px;
+  padding:3px 9px 2px;text-transform:uppercase;box-shadow:inset 0 -2px 3px rgba(0,0,0,.18);cursor:pointer}
+.kv b.plate{text-align:center}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="grow">
+    <div class="eyebrow" id="topEyebrow">Garage</div>
+    <h1 id="topTitle">Garajku</h1>
+  </div>
+  <div id="topRight"></div>
+</header>
+
+<main id="view" class="wrap"></main>
+
+<button class="fab" id="fab" aria-label="Add"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+
+<nav class="tabs" id="tabs"></nav>
+<div class="scrim" id="scrim"></div>
+<div class="sheet" id="sheet" role="dialog" aria-modal="true"><div class="grab"></div><div id="sheetBody"></div></div>
+<div class="drive" id="drive"><div id="driveBody"></div></div>
+<div class="toast" id="toast"></div>
+<script>
+/* ============================================================
+   SERVIS — local-first vehicle service logbook
+   Storage: window.storage (Claude preview) -> localStorage fallback
+   ============================================================ */
+const KEY='servis:db:v1';
+const store={
+  async get(k){ try{ if(window.storage){const r=await window.storage.get(k,false);return r?r.value:null;} return localStorage.getItem(k);}catch(e){ try{return localStorage.getItem(k)}catch(_){return null} } },
+  async set(k,v){ try{ if(window.storage){await window.storage.set(k,v,false);return true;} localStorage.setItem(k,v);return true;}catch(e){ try{localStorage.setItem(k,v);return true}catch(_){ toast('Storage full — remove some photos'); return false} } },
+};
+const uid=()=>Math.random().toString(36).slice(2,10);
+const today=()=>new Date().toISOString().slice(0,10);
+const D=s=>s?new Date(s+'T00:00:00'):null;
+const daysBetween=(a,b)=>Math.round((b-a)/864e5);
+const addMonths=(iso,m)=>{const d=D(iso);d.setMonth(d.getMonth()+Number(m||0));return d.toISOString().slice(0,10)};
+const money=n=>(DB.settings.currency||'RM')+' '+Number(n||0).toLocaleString('en-MY',{minimumFractionDigits:0,maximumFractionDigits:2});
+const km=n=>Number(n||0).toLocaleString('en-MY')+' km';
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmtDate=iso=>{if(!iso)return '—';const d=D(iso);return d.toLocaleDateString('en-MY',{day:'2-digit',month:'short',year:'numeric'})};
+
+/* ---------- seed: real-world reference data (Malaysia pricing, est.) ---------- */
+function seedAprilia(vid){
+  const P=(name,category,everyKm,everyMonths,parts,labour,notes)=>({id:uid(),vehicleId:vid,name,category,everyKm,everyMonths,partsCost:parts,labourCost:labour,notes:notes||'',lastKm:0,lastDate:today(),active:1});
+  return [
+    P('Engine oil (5W-40 synthetic, 1.0 L)','minor',6000,12,45,20,'Eni i-Ride or equivalent JASO MA2'),
+    P('Oil mesh screen / filter','major',12000,24,35,15,''),
+    P('Air filter element','major',12000,24,55,15,'Inspect every 6,000 km in dusty use'),
+    P('Spark plug (NGK CR8EKB)','major',12000,24,30,10,''),
+    P('Gearbox / hub oil (150 ml)','major',12000,24,25,15,'80W-90 gear oil'),
+    P('Valve clearance check','inspect',12000,24,0,150,'Adjust if out of spec'),
+    P('Drive belt (V-belt)','wear',20000,48,220,60,'Inspect at 10,000 km'),
+    P('Roller weights + sliders','wear',20000,48,90,0,'Do together with belt — labour shared'),
+    P('Clutch shoes + springs','wear',24000,60,180,60,''),
+    P('Coolant (G12 long life)','major',24000,24,40,30,''),
+    P('Brake fluid DOT 4 (front + rear)','major',24000,24,25,30,''),
+    P('Front brake pads','wear',12000,0,90,25,'Check thickness every service'),
+    P('Rear brake pads','wear',15000,0,85,25,''),
+    P('Tyres 120/70-16 + 140/70-15','wear',15000,60,650,0,'Price is a fitted pair'),
+    P('Final drive / general inspection','inspect',6000,12,0,30,'Bolts, lights, suspension, steering play'),
+  ];
+}
+function seedCity(vid){
+  const P=(name,category,everyKm,everyMonths,parts,labour,notes)=>({id:uid(),vehicleId:vid,name,category,everyKm,everyMonths,partsCost:parts,labourCost:labour,notes:notes||'',lastKm:0,lastDate:today(),active:1});
+  return [
+    P('Engine oil 0W-20 (3.5 L) + oil filter','minor',10000,12,160,45,'Free under Honda 5-year free labour / periodic maintenance package if applicable'),
+    P('Drain plug washer','minor',10000,12,5,0,''),
+    P('Air cleaner element','major',20000,24,60,20,''),
+    P('Cabin / air-con filter','major',20000,12,70,15,'Change earlier in heavy traffic'),
+    P('Wheel alignment + balancing','inspect',20000,0,120,0,''),
+    P('Brake fluid DOT 3','major',40000,24,50,70,''),
+    P('CVT fluid HCF-2 (approx 3.4 L)','major',40000,48,320,90,'e:HEV variant: no CVT — check owner book for e-CVT fluid'),
+    P('Front brake pads','wear',40000,0,280,60,'Inspect every 10,000 km'),
+    P('Rear brake pads','wear',60000,0,240,60,''),
+    P('Spark plugs — iridium x4','major',100000,120,280,80,''),
+    P('Coolant (Honda Type 2)','major',100000,120,90,60,''),
+    P('Tyres 185/55 R16','wear',50000,72,1200,0,'Price is a fitted set of 4'),
+    P('Wiper blades (pair)','wear',0,12,90,0,''),
+    P('12 V battery','wear',0,48,320,20,'e:HEV uses a smaller aux battery'),
+    P('General inspection','inspect',10000,12,0,0,'Included with periodic service'),
+  ];
+}
+function seedDB(){
+  const v1={id:uid(),name:'SR GT 200',type:'moto',make:'Aprilia',model:'SR GT 200',year:2025,plate:'',odo:0,odoDate:today(),avgKmDay:25,tyrePsi:29,notes:'Run-in service due at 1,000 km.'};
+  const v2={id:uid(),name:'City Hatchback',type:'car',make:'Honda',model:'City Hatchback RS',year:2026,plate:'',odo:0,odoDate:today(),avgKmDay:45,tyrePsi:33,notes:''};
+  return {
+    v:1, vehicles:[v1,v2],
+    items:[...seedAprilia(v1.id),...seedCity(v2.id)],
+    logs:[], odoLog:[], mods:[],
+    docs:[
+      {id:uid(),vehicleId:v1.id,kind:'Road tax',expiry:addMonths(today(),12),cost:2,provider:'JPJ',remindDays:30,notes:''},
+      {id:uid(),vehicleId:v1.id,kind:'Insurance',expiry:addMonths(today(),12),cost:280,provider:'',remindDays:30,notes:''},
+      {id:uid(),vehicleId:v2.id,kind:'Road tax',expiry:addMonths(today(),12),cost:90,provider:'JPJ',remindDays:30,notes:''},
+      {id:uid(),vehicleId:v2.id,kind:'Insurance',expiry:addMonths(today(),12),cost:1400,provider:'',remindDays:30,notes:''},
+    ],
+    settings:{currency:'RM',soonDays:30,soonKm:500,ai:{provider:'builtin',keys:{},models:{},baseUrl:''},firstRun:1}
+  };
+}
+
+let DB=null, VIEW='due', FILTER='all', MFILTER='all', dirty=false, BT_CONNECTED=false, BT_DEVICE_NAME='';
+let _pkgCache={}, _dueCache=null, _dueTick=0, _rateCache={};
+async function load(){
+  const raw=await store.get(KEY);
+  if(raw){ try{DB=JSON.parse(raw)}catch(e){DB=seedDB()} } else DB=seedDB();
+  DB.settings=Object.assign({currency:'RM',soonDays:30,soonKm:500,ai:{provider:'builtin',keys:{},models:{},baseUrl:''}},DB.settings||{});
+  const arr=x=>Array.isArray(x)?x:[];
+  DB.vehicles=arr(DB.vehicles);DB.items=arr(DB.items);DB.mods=arr(DB.mods);
+  DB.docs=arr(DB.docs);DB.logs=arr(DB.logs);DB.odoLog=arr(DB.odoLog);DB.chat=arr(DB.chat);DB.trips=arr(DB.trips);DB.tyres=arr(DB.tyres);
+  const a=DB.settings.ai||{};
+  if(!a.keys){
+    DB.settings.ai={provider:(a.provider==='gemini'?'gemini':'builtin'),keys:{gemini:a.geminiKey||''},models:{},baseUrl:''};
+  }
+}
+let saveT=null;
+function save(){ Object.keys(_pkgCache).forEach(k=>delete _pkgCache[k]); Object.keys(_rateCache).forEach(k=>delete _rateCache[k]); invalidateDue(); clearTimeout(saveT); saveT=setTimeout(()=>store.set(KEY,JSON.stringify(DB)),300); }
+function saveSoon(){ save() }   // alias — callers that used to call save() immediately
+// UI actions that need the data flushed before a reload can call saveNow()
+async function saveNow(){ clearTimeout(saveT); await store.set(KEY,JSON.stringify(DB)); }
+function copyText(t,label){
+  const done=()=>toast((label||'Copied')+' copied');
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(done).catch(()=>fallback())}
+  else fallback();
+  function fallback(){const a=document.createElement('textarea');a.value=t;document.body.appendChild(a);a.select();
+    try{document.execCommand('copy');done()}catch(e){toast(t)}document.body.removeChild(a)}
+}
+window.copyText=copyText;
+function copyField(vid,field,label){const v=vehicleOf(vid);if(v&&v[field])copyText(String(v[field]),label)}
+window.copyField=copyField;
+function copyMsg(id){const m=(DB.chat||[]).find(x=>x.id===id);if(m)copyText(m.text,'Answer')}
+window.copyMsg=copyMsg;
+const IOS=/iPad|iPhone|iPod/.test(navigator.userAgent||'')||((navigator.platform==='MacIntel')&&navigator.maxTouchPoints>1);
+const STANDALONE=!!(navigator.standalone||(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches));
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('on');clearTimeout(t._x);t._x=setTimeout(()=>t.classList.remove('on'),2100)}
+
+/* ---------- photos (separate keys so the main record stays small) ---------- */
+async function savePhoto(dataUrl){const id='photo:'+uid();await store.set(id,dataUrl);return id}
+async function getPhoto(id){return await store.get(id)}
+function pickPhoto(cb){
+  const i=document.createElement('input');i.type='file';i.accept='image/*';
+  i.onchange=()=>{const f=i.files[0];if(!f)return;const r=new FileReader();
+    r.onload=()=>{const img=new Image();img.onload=()=>{
+      const max=1000,s=Math.min(1,max/Math.max(img.width,img.height));
+      const c=document.createElement('canvas');c.width=img.width*s;c.height=img.height*s;
+      c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+      cb(c.toDataURL('image/jpeg',.62));
+    };img.src=r.result};
+    r.readAsDataURL(f)};
+  i.click();
+}
+
+/* ---------- vehicle portrait ---------- */
+const VEH_ICON={
+  car:'<path d="M4 17h16M6.5 17v2M17.5 17v2"/><path d="M3.6 13.5 5.4 8.2A2.4 2.4 0 0 1 7.7 6.6h8.6a2.4 2.4 0 0 1 2.3 1.6l1.8 5.3"/><rect x="2.6" y="13.2" width="18.8" height="4.1" rx="1.4"/><path d="M6 15.4h1.6M16.4 15.4H18"/><path d="M8.4 6.8 8 13.2M15.6 6.8l.4 6.4"/>',
+  moto:'<circle cx="5.4" cy="16.6" r="3.3"/><circle cx="18.6" cy="16.6" r="3.3"/><path d="M5.4 16.6h4.2l4-6.6h4.2"/><path d="M9.6 16.6 13 8.4h3.4"/><path d="M12.2 6.4h3.1l1.5 3.6"/><path d="M8.2 8.6h4.4"/>'
+};
+const PHOTO_CACHE={};
+function vpic(v,size){
+  const cls=size==='lg'?'vpic lg':'vpic sm';
+  const inner=size==='lg'?`<div class="ov">${v.plate?`<span class="plate">${esc(v.plate)}</span>`:''}</div><button class="cam" onclick="event.stopPropagation();setVehiclePhoto('${v.id}')">${v.photoId?'CHANGE':'ADD PHOTO'}</button>`:'';
+  return `<div class="${cls}${v.photoId&&PHOTO_CACHE[v.photoId]?' has':''}" data-photo="${v.photoId||''}"
+    style="${v.photoId&&PHOTO_CACHE[v.photoId]?`background-image:url(${PHOTO_CACHE[v.photoId]})`:''}">
+    <svg viewBox="0 0 24 24">${VEH_ICON[v.type==='moto'?'moto':'car']}</svg>${inner}</div>`;
+}
+async function hydratePhotos(){
+  if(!document.querySelectorAll)return;
+  const nodes=[...document.querySelectorAll('.vpic[data-photo]')].filter(n=>n.dataset.photo&&!n.classList.contains('has'));
+  for(const n of nodes){
+    const id=n.dataset.photo;
+    if(!PHOTO_CACHE[id]){try{PHOTO_CACHE[id]=await getPhoto(id)}catch(e){continue}}
+    if(PHOTO_CACHE[id]){n.style.backgroundImage=`url(${PHOTO_CACHE[id]})`;n.classList.add('has')}
+  }
+}
+function setVehiclePhoto(vid){
+  pickPhoto(async du=>{
+    const v=vehicleOf(vid);
+    const id=await savePhoto(du);
+    PHOTO_CACHE[id]=du; v.photoId=id; save(); render(); toast('Photo added');
+  });
+}
+window.setVehiclePhoto=setVehiclePhoto;
+
+/* ---------- the reminder engine ---------- */
+function vehicleOf(id){return DB.vehicles.find(v=>v.id===id)}
+function avgKmDay(v){
+  if(_rateCache[v.id]&&_rateCache[v.id].odo===v.odo)return _rateCache[v.id].rate;
+  // real trips are the best evidence of how much this vehicle actually gets used
+  const tr=(DB.trips||[]).filter(t=>t.vehicleId===v.id);
+  if(tr.length>=3){
+    const ts=tr.map(t=>t.ts).sort((a,b)=>a-b);
+    const span=(ts[ts.length-1]-ts[0])/864e5;
+    const total=tr.reduce((s,t)=>s+Number(t.km||0),0);
+    if(span>=3&&total>0){const rate=Math.max(1,total/span);_rateCache[v.id]={odo:v.odo,rate};return rate;}
+  }
+  const logs=Q.odoLog(v.id).sort((a,b)=>a.date<b.date?-1:1);
+  if(logs.length>=2){
+    const a=logs[0],b=logs[logs.length-1];
+    const d=daysBetween(D(a.date),D(b.date));
+    if(d>=3 && b.odo>a.odo){const rate=Math.max(1,(b.odo-a.odo)/d);_rateCache[v.id]={odo:v.odo,rate};return rate;}
+  }
+  const rate=Math.max(1,Number(v.avgKmDay)||20);
+  _rateCache[v.id]={odo:v.odo,rate};
+  return rate;
+}
+/* status for one maintenance item */
+function statusOf(item,v){
+  const rate=avgKmDay(v), now=new Date(); now.setHours(0,0,0,0);
+  const out={item,vehicle:v,rate};
+  let dKm=null,dDays=null;
+  if(item.everyKm>0){
+    const nextKm=Number(item.lastKm||0)+Number(item.everyKm);
+    out.nextKm=nextKm; dKm=nextKm-Number(v.odo||0);
+    out.kmLeft=dKm; out.daysFromKm=dKm/rate;
+  }
+  if(item.everyMonths>0 && item.lastDate){
+    const nd=addMonths(item.lastDate,item.everyMonths);
+    out.nextDate=nd; dDays=daysBetween(now,D(nd)); out.daysFromDate=dDays;
+  }
+  const cands=[out.daysFromKm,out.daysFromDate].filter(x=>x!=null&&!isNaN(x));
+  out.days = cands.length?Math.min(...cands):null;
+  out.driver = (out.daysFromKm!=null && out.days===out.daysFromKm)?'km':'date';
+  const S=DB.settings;
+  if(out.days==null) out.state='idle';
+  else if(out.days<=0 || (out.kmLeft!=null&&out.kmLeft<=0)) out.state='over';
+  else if(out.days<=S.soonDays || (out.kmLeft!=null&&out.kmLeft<=S.soonKm)) out.state='soon';
+  else out.state='ok';
+  /* progress through the interval, 0..1 */
+  let p=0;
+  if(item.everyKm>0){ p=Math.max(p,(Number(v.odo||0)-Number(item.lastKm||0))/item.everyKm); }
+  if(item.everyMonths>0&&item.lastDate){ const tot=daysBetween(D(item.lastDate),D(addMonths(item.lastDate,item.everyMonths)))||1; p=Math.max(p,daysBetween(D(item.lastDate),now)/tot); }
+  out.pct=Math.max(0,Math.min(1.15,p));
+  out.cost=Number(item.partsCost||0)+Number(item.labourCost||0);
+  out.dueDate = out.nextDate || (out.daysFromKm!=null? new Date(Date.now()+out.daysFromKm*864e5).toISOString().slice(0,10):null);
+  return out;
+}
+function invalidateDue(){_dueCache=null}
+function allDue(){
+  const tick=DB.vehicles.length+DB.items.length+(DB.vehicles[0]&&DB.vehicles[0].odo||0);
+  if(_dueCache&&_dueTick===tick)return _dueCache;
+  const list=[];
+  DB.vehicles.forEach(v=>Q.items(v.id).forEach(i=>list.push(statusOf(i,v))));
+  _dueCache=list.sort((a,b)=>(a.days==null?1e9:a.days)-(b.days==null?1e9:b.days));
+  _dueTick=tick;
+  return _dueCache;
+}
+function docStatus(d){
+  const now=new Date();now.setHours(0,0,0,0);
+  const days=d.expiry?daysBetween(now,D(d.expiry)):null;
+  const state=days==null?'idle':days<0?'over':days<=(d.remindDays||30)?'soon':'ok';
+  return {days,state};
+}
+const stateLabel={over:'Overdue',soon:'Due soon',ok:'On track',idle:'No schedule'};
+function relDays(n){
+  if(n==null)return '—';
+  n=Math.round(n);
+  if(n<0)return Math.abs(n)+ (Math.abs(n)===1?' day late':' days late');
+  if(n===0)return 'Today';
+  if(n<45)return 'in '+n+' days';
+  if(n<400)return 'in '+Math.round(n/30)+' months';
+  return 'in '+(n/365).toFixed(1)+' years';
+}
+
+
+/* ============================ CONSTANTS & HELPERS ============================ */
+const STATE_COLOUR={over:'--over',soon:'--soon',ok:'--ok',idle:'--idle'};
+function stateColour(state){return 'var('+STATE_COLOUR[state]+')';}
+function stateDot(state){return `<span class="dot" style="background:var(${STATE_COLOUR[state]||'--idle'})"></span>`;}
+/* ============================ DB QUERY LAYER ============================ */
+// All DB reads go through these — no more scattered .filter() across views
+const Q = {
+  vehicles: ()=>DB.vehicles,
+  vehicle:  id=>DB.vehicles.find(v=>v.id===id),
+  items:    (vid,activeOnly=true)=>DB.items.filter(i=>i.vehicleId===vid&&(!activeOnly||i.active!==0)),
+  logs:     vid=>DB.logs.filter(l=>l.vehicleId===vid),
+  docs:     vid=>DB.docs.filter(d=>d.vehicleId===vid),
+  mods:     vid=>DB.mods.filter(m=>m.vehicleId===vid),
+  tyres:    vid=>(DB.tyres||[]).filter(t=>t.vehicleId===vid),
+  trips:    vid=>(DB.trips||[]).filter(t=>t.vehicleId===vid),
+  odoLog:   vid=>DB.odoLog.filter(o=>o.vehicleId===vid),
+  chat:     vid=>(DB.chat||[]).filter(m=>m.vehicleId===vid),
+  // aggregates
+  totalSpent: vid=>Q.logs(vid).reduce((s,l)=>s+logTotal(l),0),
+  lastTrips:  (vid,n=5)=>Q.trips(vid).sort((a,b)=>b.ts-a.ts).slice(0,n),
+};
+// vehicleOf kept for backward compat — delegates to Q.vehicle
+function vehicleOf(id){return Q.vehicle(id)}
+
+/* ============================ UI SHELL ============================ */
+const ICONS={
+  due:'<path d="M12 8v4l2.5 2.5"/><circle cx="12" cy="12" r="9"/>',
+  garage:'<path d="M3 10 12 4l9 6v10H3z"/><path d="M7 20v-6h10v6"/><path d="M7 17h10"/>',
+  log:'<path d="M5 4h11l3 3v13H5z"/><path d="M8 10h8M8 14h6"/>',
+  mods:'<path d="M14.5 5.5a3.5 3.5 0 0 0 4.6 4.6L21 12l-9 9-3-3 9-9z"/><path d="M6.5 17.5 3 21"/>',
+  more:'<circle cx="12" cy="6" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="12" cy="18" r="1.4"/>',
+  plus:'<path d="M12 5v14M5 12h14"/>', check:'<path d="m4 12 5 5L20 6"/>',
+  bell:'<path d="M18 8a6 6 0 1 0-12 0c0 7-3 8-3 8h18s-3-1-3-8"/><path d="M10.5 21a2 2 0 0 0 3 0"/>',
+  spark:'<path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18"/><circle cx="12" cy="12" r="2.5"/>',
+  speed:'<path d="M4.2 17a9 9 0 1 1 15.6 0"/><path d="m14.6 9.8-3.1 4.3"/><circle cx="12" cy="15.4" r="1.5"/>',
+};
+const TABS=[['due','Due','due'],['garage','Garage','garage'],['ask','Ask','spark'],['log','Log','log'],['mods','Mods','mods'],['more','More','more']];
+function renderTabs(){
+  document.getElementById('tabs').innerHTML=TABS.map(([id,label,ic])=>
+    `<button class="${VIEW===id?'on':''}" onclick="go('${id}')"><svg viewBox="0 0 24 24">${ICONS[ic]}</svg>${label}</button>`).join('');
+}
+function go(v){VIEW=v;FILTER=FILTER||'all';render();window.scrollTo(0,0)}
+window.go=go;
+
+/* generic bottom sheet */
+function sheet(html){
+  document.getElementById('sheetBody').innerHTML=html;
+  document.getElementById('sheet').classList.add('on');
+  document.getElementById('scrim').classList.add('on');
+}
+function closeSheet(){document.getElementById('sheet').classList.remove('on');document.getElementById('scrim').classList.remove('on')}
+window.closeSheet=closeSheet;
+document.getElementById('scrim').onclick=closeSheet;
+
+/* form builder: fields = [{k,label,type,opts,ph,hint,half,val}] */
+function form(title,fields,onSave,extra){
+  const F=fields.map(f=>{
+    const v=f.val==null?'':f.val, id='f_'+f.k;
+    let inp;
+    if(f.type==='select') inp=`<select id="${id}">${f.opts.map(o=>{const[val,lab]=Array.isArray(o)?o:[o,o];return `<option value="${esc(val)}" ${String(val)===String(v)?'selected':''}>${esc(lab)}</option>`}).join('')}</select>`;
+    else if(f.type==='textarea') inp=`<textarea id="${id}" placeholder="${esc(f.ph||'')}">${esc(v)}</textarea>`;
+    else inp=`<input id="${id}" type="${f.type||'text'}" inputmode="${f.type==='number'?'decimal':'text'}" value="${esc(v)}" placeholder="${esc(f.ph||'')}">`;
+    return `<div class="f ${f.half?'h':''}"><label for="${id}">${esc(f.label)}</label>${inp}${f.hint?`<div class="hint">${f.hint}</div>`:''}</div>`;
+  });
+  /* pair up halves */
+  let out='',buf=[];
+  fields.forEach((f,i)=>{ if(f.half){buf.push(F[i]); if(buf.length===2){out+=`<div class="f2">${buf.join('')}</div>`;buf=[]}} else {if(buf.length){out+=buf.join('');buf=[]} out+=F[i]} });
+  if(buf.length)out+=buf.join('');
+  sheet(`<h3>${esc(title)}</h3>${extra||''}${out}
+    <div class="row" style="gap:8px;margin-top:6px">
+      <button class="btn ghost grow" onclick="closeSheet()">Cancel</button>
+      <button class="btn pri grow" id="sheetSave">Save</button>
+    </div>`);
+  const sb=document.getElementById('sheetSave');
+  let done=false;
+  sb.onclick=()=>{
+    if(done)return; done=true; sb.disabled=true;
+    const d={};fields.forEach(f=>{const e=document.getElementById('f_'+f.k);if(!e)return;let v=e.value;if(f.type==='number')v=v===''?0:Number(v);d[f.k]=v});
+    try{onSave(d)}catch(err){done=false;sb.disabled=false;toast('Could not save');return}
+    save();closeSheet();render();
+  };
+}
+function confirmDo(msg,fn){
+  sheet(`<h3>Are you sure?</h3><p class="muted small" style="margin:6px 0 16px">${esc(msg)}</p>
+   <div class="row" style="gap:8px"><button class="btn ghost grow" onclick="closeSheet()">Keep it</button>
+   <button class="btn dang grow" id="cfm">Delete</button></div>`);
+  const cb=document.getElementById('cfm');let cdone=false;
+  cb.onclick=()=>{if(cdone)return;cdone=true;cb.disabled=true;fn();save();closeSheet();render();toast('Deleted')};
+}
+
+/* odometer widget */
+function odoStrip(n){
+  const s=String(Math.max(0,Math.round(n||0))).padStart(6,'0');
+  return `<span class="odo"><span class="digits">${s.split('').map((d,i)=>`<span class="d ${i===5?'last':''}">${d}</span>`).join('')}</span><span class="unit">KM</span></span>`;
+}
+
+/* ============================ VIEW: DUE ============================ */
+function viewDue(){
+  const due=allDue();
+  const docs=DB.docs.map(d=>({d,...docStatus(d)})).sort((a,b)=>(a.days==null?1e9:a.days)-(b.days==null?1e9:b.days));
+  const over=due.filter(x=>x.state==='over'), soon=due.filter(x=>x.state==='soon');
+  const docAlert=docs.filter(x=>x.state==='over'||x.state==='soon');
+  const nextUp=due.find(x=>x.state!=='idle');
+  const spend=over.concat(soon).reduce((s,x)=>s+x.cost,0)+docAlert.reduce((s,x)=>s+Number(x.d.cost||0),0);
+
+  let h='';
+  const unset=DB.vehicles.filter(v=>!v.setup);
+  if(unset.length)h+=`<div class="card" style="border-color:#5C4A26;background:#1C1710">
+    <div class="between"><div class="grow"><div class="label" style="color:var(--amber)">Start here</div>
+    <b>Anchor the schedule</b><div class="small muted">Give me your odometer and a couple of dates — every item's countdown gets filled in at once.</div></div></div>
+    <button class="btn pri full sm" style="margin-top:11px" onclick="setupAll()">Set up ${unset.map(v=>esc(v.name)).join(' &amp; ')}</button></div>`;
+  /* hero: the vehicle whose next job is closest */
+  if(nextUp){
+    const v=nextUp.vehicle;
+    h+=`<div class="card fade" style="padding:16px 14px 15px">
+      <div class="between" style="align-items:flex-start">
+        <div><div class="label">Next job — ${esc(v.make)} ${esc(v.name)}${v.plate?' · '+esc(v.plate):''}</div>
+        <div class="big" style="margin:5px 0 3px">${esc(nextUp.item.name)}</div></div>
+        <span class="pill st-${nextUp.state}">${stateLabel[nextUp.state]}</span>
+      </div>
+      <div class="row" style="gap:14px;margin-top:10px;align-items:flex-end">
+        <div class="grow">
+          <div class="num" style="font-size:15px">${relDays(nextUp.days)}</div>
+          <div class="tiny dim">${nextUp.kmLeft!=null?(nextUp.kmLeft>0?km(nextUp.kmLeft)+' to go':km(-nextUp.kmLeft)+' past'):'time based'}${nextUp.nextDate?' · by '+fmtDate(nextUp.nextDate):''}</div>
+        </div>
+        <div style="text-align:right"><div class="num" style="font-size:15px">${money(nextUp.cost)}</div><div class="tiny dim">estimated</div></div>
+      </div>
+      <div class="gauge ${nextUp.state==='over'?'striped':''}"><i style="width:${Math.min(100,nextUp.pct*100)}%;background:var(--${nextUp.state==='over'?'over':nextUp.state==='soon'?'soon':'ok'})"></i></div>
+      <div class="row" style="gap:8px;margin-top:12px">
+        <button class="btn sm grow" onclick="markDone('${nextUp.item.id}')"><svg viewBox="0 0 24 24">${ICONS.check}</svg>Mark serviced</button>
+        <button class="btn sm grow" onclick="icsFor('${nextUp.item.id}')"><svg viewBox="0 0 24 24">${ICONS.bell}</svg>Remind me</button>
+      </div></div>`;
+  }
+  /* odometer quick update per vehicle */
+  h+=`<div class="sect"><h2>Odometer</h2><div class="rule"></div></div>`;
+  DB.vehicles.forEach(v=>{
+    const r=avgKmDay(v);
+    const tr=recentTrips(v.id,1)[0];
+    h+=`<div class="card">
+      <div class="between" onclick="updateOdo('${v.id}')" style="cursor:pointer"><div class="row grow" style="min-width:0;gap:11px">
+        ${vpic(v,'sm')}
+        <div class="grow" style="min-width:0"><div class="label trunc">${esc(v.make)} ${esc(v.model)}</div>
+        ${v.plate?`<div class="plate" style="font-size:13px;margin:4px 0 6px">${esc(v.plate)}</div>`:''}
+        <div>${odoStrip(v.odo)}</div></div></div>
+        <div style="text-align:right"><div class="num small">${r.toFixed(0)} km<span class="dim">/day</span></div>
+        <div class="tiny dim">${Q.odoLog(v.id).length>=2?'measured':'estimated'}</div>
+        ${tr?`<div class="tiny dim" style="margin-top:4px">last trip ${tr.km.toFixed(1)} km</div>`:''}</div></div>
+      <div class="row" style="gap:8px;margin-top:11px">
+        <button class="btn sm grow" onclick="updateOdo('${v.id}')">Enter reading</button>
+        <button class="btn sm grow pri" onclick="openDrive('${v.id}')"><svg viewBox="0 0 24 24">${ICONS.speed}</svg>Track a trip</button>
+      </div></div>`;
+  });
+
+  const ta=tyreAlerts();
+  if(ta.length){
+    h+=`<div class="sect"><h2>Tyres</h2><div class="rule"></div></div>`;
+    ta.forEach(({v,s})=>{
+      h+=`<div class="card tap" onclick="openVehicle('${v.id}')">
+        <div class="between"><div class="row gap"><span class="dot st-${s.worst}"></span>
+          <div><div class="label">Tyres — ${esc(v.name)}</div>
+          <div class="small">${s.worst==='over'?'Pressure out of range':'Check pressure soon'}${s.lowTread?' · '+s.lowTread+' tyre(s) low tread':''}</div></div></div>
+          <span class="pill st-${s.worst}">${stateLabel[s.worst]}</span></div></div>`;
+    });
+  }
+  if(docAlert.length){
+    h+=`<div class="sect"><h2>Papers</h2><div class="rule"></div></div>`;
+    docAlert.forEach(x=>{h+=docRow(x)});
+  }
+
+  h+=`<div class="sect"><h2>Coming up</h2><div class="rule"></div>
+      <span class="tiny dim num">${over.length+soon.length} items · ${money(spend)}</span></div>`;
+  const list=due.filter(x=>x!==nextUp);
+  if(!list.length&&!nextUp) h+=`<div class="empty"><div class="big">Nothing scheduled</div><p class="small">Add a vehicle in Garage, then load a maintenance schedule — by hand or with AI.</p></div>`;
+  list.slice(0,40).forEach(x=>{h+=dueRow(x)});
+  return h;
+}
+function dueRow(x){
+  const v=x.vehicle;
+  return `<div class="card tap" onclick="itemSheet('${x.item.id}')">
+    <div class="between">
+      <div class="row grow" style="min-width:0"><span class="dot st-${x.state}" style="background:stateColour(x.state)"></span>
+        <div class="grow" style="min-width:0">
+          <div class="trunc" style="font-weight:500">${esc(x.item.name)}</div>
+          <div class="tiny dim trunc">${esc(v.name)} · ${x.kmLeft!=null?(x.kmLeft>0?km(x.kmLeft)+' left':'overdue by '+km(-x.kmLeft)):''}${x.nextDate?(x.kmLeft!=null?' · ':'')+fmtDate(x.nextDate):''}</div>
+        </div></div>
+      <div style="text-align:right"><div class="num small">${relDays(x.days)}</div><div class="tiny dim num">${money(x.cost)}</div></div>
+    </div>
+    <div class="gauge"><i style="width:${Math.min(100,x.pct*100)}%;background:stateColour(x.state)"></i></div>
+  </div>`;
+}
+function docRow(x){
+  const d=x.d,v=vehicleOf(d.vehicleId);
+  return `<div class="card tap" onclick="docSheet('${d.id}')"><div class="between">
+    <div class="row grow" style="min-width:0"><span class="dot" style="background:var(--${x.state==='over'?'over':x.state==='soon'?'soon':'ok'})"></span>
+    <div class="grow" style="min-width:0"><div class="trunc" style="font-weight:500">${esc(d.kind)}</div>
+    <div class="tiny dim trunc">${esc(v?v.name:'—')} · expires ${fmtDate(d.expiry)}</div></div></div>
+    <div style="text-align:right"><div class="num small">${relDays(x.days)}</div><div class="tiny dim num">${money(d.cost)}</div></div>
+  </div></div>`;
+}
+
+/* ============================ VIEW: GARAGE ============================ */
+let CURV=null;
+function viewGarage(){
+  if(CURV&&vehicleOf(CURV)) return viewVehicle(vehicleOf(CURV));
+  let h='';
+  if(!DB.vehicles.length) h+=`<div class="empty"><div class="big">No vehicles yet</div><p class="small">Add your first one with the + button.</p></div>`;
+  DB.vehicles.forEach(v=>{
+    const items=Q.items(v.id,false);
+    const st=items.map(i=>statusOf(i,v));
+    const over=st.filter(x=>x.state==='over').length, soon=st.filter(x=>x.state==='soon').length;
+    const worst=over?'over':soon?'soon':'ok';
+    const spent=Q.logs(v.id).reduce((s,l)=>s+logTotal(l),0);
+    h+=`<div class="card tap" onclick="openVehicle('${v.id}')">
+      <div class="row" style="align-items:flex-start;gap:12px">
+        ${vpic(v,'sm')}
+        <div class="grow" style="min-width:0">
+          <div class="between"><div class="label">${v.year||''} ${esc(v.make)}</div>
+            <span class="pill st-${worst}">${over?over+' overdue':soon?soon+' due soon':'All clear'}</span></div>
+          <div class="big" style="margin:3px 0 6px">${esc(v.model||v.name)}</div>
+          ${v.plate?`<div class="plate">${esc(v.plate)}</div>`:'<div class="tiny dim">No plate saved</div>'}
+        </div>
+      </div>
+      <div style="margin-top:11px">${odoStrip(v.odo)}</div>
+      <hr class="sep">
+      <div class="row" style="gap:18px">
+        <div><div class="tiny dim">Schedule</div><div class="num small">${items.length} items</div></div>
+        <div><div class="tiny dim">Spent to date</div><div class="num small">${money(spent)}</div></div>
+        <div><div class="tiny dim">Usage</div><div class="num small">${avgKmDay(v).toFixed(0)} km/day</div></div>
+      </div></div>`;
+  });
+  return h;
+}
+function openVehicle(id){CURV=id;VIEW='garage';render();window.scrollTo(0,0)}
+window.openVehicle=openVehicle;
+
+function packageOf(v,kind){
+  const key=v.id+':'+kind+':'+v.odo+':'+DB.items.length;
+  if(_pkgCache[key])return _pkgCache[key];
+  const all=Q.items(v.id);
+  const minorItems=all.filter(i=>i.category==='minor');
+  const base=Math.min(...minorItems.filter(i=>i.everyKm>0).map(i=>i.everyKm).concat([10000]));
+  const cap=base*4;
+  const isMajorNow=i=>i.category==='major'&&((i.everyKm>0&&i.everyKm<=cap)||(i.everyKm===0&&i.everyMonths>0&&i.everyMonths<=48));
+  let items;
+  if(kind==='minor')items=minorItems;
+  else if(kind==='major')items=minorItems.concat(all.filter(isMajorNow));
+  else items=all.filter(i=>i.category==='major'&&!isMajorNow(i));
+  const parts=items.reduce((s,i)=>s+Number(i.partsCost||0),0);
+  const labour=items.reduce((s,i)=>s+Number(i.labourCost||0),0);
+  const kms=items.filter(i=>i.everyKm>0).map(i=>i.everyKm);
+  const everyKm=kind==='minor'?base:(kms.length?Math.max(...kms):0);
+  const result={items,parts,labour,total:parts+labour,everyKm};
+  _pkgCache[key]=result;
+  return result;
+}
+function viewVehicle(v){
+  const items=Q.items(v.id,false).map(i=>statusOf(i,v))
+    .sort((a,b)=>(a.days==null?1e9:a.days)-(b.days==null?1e9:b.days));
+  const minor=packageOf(v,'minor'), major=packageOf(v,'major');
+  const wear=Q.items(v.id,false).filter(i=>['wear','inspect'].includes(i.category));
+  const docs=Q.docs(v.id).map(d=>({d,...docStatus(d)}));
+  const logs=Q.logs(v.id);
+  const spent=logs.reduce((s,l)=>s+logTotal(l),0);
+  const perKm=v.odo>0?spent/v.odo:0;
+
+  let h=`<button class="btn sm ghost" onclick="CURV=null;render()" style="margin-bottom:12px">← All vehicles</button>
+  <div class="card">
+    ${vpic(v,'lg')}
+    <div class="between" style="align-items:flex-start">
+      <div><div class="label">${v.year||''} ${esc(v.make)}</div>
+      <div class="big" style="margin:4px 0 9px">${esc(v.model||v.name)}</div>${odoStrip(v.odo)}</div>
+      <button class="btn sm ghost" onclick="editVehicle('${v.id}')">Edit</button>
+    </div>
+    <hr class="sep">
+    ${v.plate?`<div class="kv"><span class="muted">Registration</span><b class="plate" onclick="copyField('${v.id}','plate','Plate')">${esc(v.plate)}</b></div>`:''}
+    ${v.photoId?`<div class="kv"><span class="muted">Photo</span><b onclick="confirmDo('Remove the photo of this vehicle.',()=>{const t=vehicleOf('${v.id}');if(t)t.photoId=''})" style="cursor:pointer;color:var(--over)">Remove</b></div>`:''}
+    ${v.vin?`<div class="kv"><span class="muted">VIN / chassis</span><b onclick="copyField('${v.id}','vin','VIN')" style="cursor:pointer;word-break:break-all;text-align:right">${esc(v.vin)}</b></div>`:''}
+    ${v.engineNo?`<div class="kv"><span class="muted">Engine no.</span><b onclick="copyField('${v.id}','engineNo','Engine number')" style="cursor:pointer">${esc(v.engineNo)}</b></div>`:''}
+    ${v.colour?`<div class="kv"><span class="muted">Colour</span><b>${esc(v.colour)}</b></div>`:''}
+    <div class="kv"><span class="muted">Distance per day</span><b>${avgKmDay(v).toFixed(1)} km</b></div>
+    <div class="kv"><span class="muted">Total spent</span><b>${money(spent)}</b></div>
+    <div class="kv"><span class="muted">Running cost</span><b>${perKm?money(perKm.toFixed(3))+' /km':'—'}</b></div>
+    ${v.notes?`<div class="small muted" style="margin-top:9px">${esc(v.notes)}</div>`:''}
+    <div class="row" style="gap:8px;margin-top:12px">
+      <button class="btn sm grow" onclick="updateOdo('${v.id}')">Update odometer</button>
+      <button class="btn sm grow" onclick="openDrive('${v.id}')"><svg viewBox="0 0 24 24">${ICONS.speed}</svg>Track trip</button>
+      <button class="btn sm grow" onclick="setupWizard('${v.id}')">Set up schedule</button>
+    </div>
+    <div class="row" style="gap:8px;margin-top:8px">
+      <button class="btn sm grow pri" onclick="aiSheet('${v.id}')"><svg viewBox="0 0 24 24">${ICONS.spark}</svg>AI service book</button>
+    </div>
+  </div>`;
+
+  h+=`<div class="sect"><h2>Service packages</h2><div class="rule"></div></div>`;
+  h+=pkgCard('Minor service',minor,v,'Routine — oil and checks');
+  h+=pkgCard('Major service',major,v,'Minor plus the interval parts');
+  h+=pkgCard('Long interval',packageOf(v,'long'),v,'One-off jobs much further out');
+  if(wear.length){
+    const wp=wear.reduce((s,i)=>s+Number(i.partsCost||0)+Number(i.labourCost||0),0);
+    h+=`<div class="card"><div class="between"><div><div class="label">Wear &amp; inspection</div>
+      <div class="disp" style="font-size:19px;margin-top:3px">${wear.length} items tracked separately</div></div>
+      <div style="text-align:right"><div class="num">${money(wp)}</div><div class="tiny dim">if all replaced</div></div></div></div>`;
+  }
+
+  h+=viewTyres(v.id);
+  h+=`<div class="sect"><h2>Schedule</h2><div class="rule"></div><button class="btn sm ghost" onclick="editItem(null,'${v.id}')">+ Item</button></div>`;
+  if(!items.length)h+=`<div class="empty small">No maintenance items. Add one, or let AI build the schedule from the owner's manual.</div>`;
+  items.forEach(x=>{h+=dueRow(x)});
+
+  h+=`<div class="sect"><h2>Papers</h2><div class="rule"></div><button class="btn sm ghost" onclick="editDoc(null,'${v.id}')">+ Add</button></div>`;
+  if(!docs.length)h+=`<div class="empty small">Track road tax, insurance and inspection expiry here.</div>`;
+  docs.forEach(x=>{h+=docRow(x)});
+  return h;
+}
+function pkgCard(name,p,v,sub){
+  if(!p.items.length)return '';
+  const nextAt=p.everyKm?Math.ceil((Number(v.odo)+1)/p.everyKm)*p.everyKm:null;
+  return `<div class="card">
+    <div class="between" style="align-items:flex-start">
+      <div><div class="label">${sub}</div><div class="big" style="margin-top:3px">${name}</div></div>
+      <div style="text-align:right"><div class="num" style="font-size:19px">${money(p.total)}</div>
+      ${nextAt?`<div class="tiny dim">next at ${km(nextAt)}</div>`:''}</div>
+    </div>
+    <div class="row" style="gap:16px;margin:10px 0 8px">
+      <div><span class="tiny dim">Parts </span><span class="num small">${money(p.parts)}</span></div>
+      <div><span class="tiny dim">Labour </span><span class="num small">${money(p.labour)}</span></div>
+    </div>
+    <details><summary class="small muted" style="cursor:pointer">What gets changed (${p.items.length})</summary>
+      <div style="margin-top:8px">${p.items.map(i=>`<div class="kv"><span class="muted trunc">${esc(i.name)}</span><b>${money(Number(i.partsCost||0)+Number(i.labourCost||0))}</b></div>`).join('')}</div>
+    </details></div>`;
+}
+
+/* ============================ VIEW: HISTORY ============================ */
+function logTotal(l){if(!l)return 0;return Number(l.parts||0)+Number(l.labour||0)+Number(l.other||0)}
+function viewLog(){
+  const logs=[...DB.logs].sort((a,b)=>a.date<b.date?1:-1)
+    .filter(l=>FILTER==='all'||l.vehicleId===FILTER);
+  const total=logs.reduce((s,l)=>s+logTotal(l),0);
+  const yr=new Date().getFullYear();
+  const ytd=logs.filter(l=>l.date.startsWith(yr)).reduce((s,l)=>s+logTotal(l),0);
+  let h=`<div class="chips">${['all',...DB.vehicles.map(v=>v.id)].map(id=>
+    `<button class="chip ${FILTER===id?'on':''}" onclick="FILTER='${id}';render()">${id==='all'?'All vehicles':esc(vehicleOf(id).name)}</button>`).join('')}</div>`;
+  h+=`<div class="card"><div class="row" style="gap:22px">
+    <div><div class="label">Spent ${yr}</div><div class="big num" style="margin-top:3px">${money(ytd)}</div></div>
+    <div><div class="label">All time</div><div class="big num" style="margin-top:3px">${money(total)}</div></div>
+  </div></div>`;
+  const trips=recentTrips(FILTER==='all'?null:FILTER,8);
+  if(trips.length){
+    const tot=trips.reduce((s,t)=>s+t.km,0);
+    h+=`<div class="sect"><h2>Recent trips</h2><div class="rule"></div><span class="tiny dim num">${tot.toFixed(0)} km</span></div>
+      <div class="card">${trips.map(t=>{const tv=vehicleOf(t.vehicleId);
+        return `<div class="kv"><span class="muted">${fmtDate(t.date)}${tv?' · '+esc(tv.name):''}</span>
+        <b>${t.km.toFixed(1)} km · ${hhmmss(t.dur)}${t.max?' · '+t.max+' km/h':''}</b></div>`}).join('')}</div>`;
+  }
+  if(!logs.length)h+=`<div class="empty"><div class="big">No service logged</div><p class="small">Every time you service, log it here — receipt photo, workshop, cost. Marking an item as serviced does this for you.</p></div>`;
+  logs.forEach(l=>{
+    const v=vehicleOf(l.vehicleId);
+    h+=`<div class="card tap" onclick="logSheet('${l.id}')">
+      <div class="between"><div class="grow" style="min-width:0">
+        <div class="label">${fmtDate(l.date)} · ${esc(v?v.name:'—')}</div>
+        <div style="font-weight:500;margin-top:3px" class="trunc">${esc(l.title||'Service')}</div>
+        <div class="tiny dim trunc">${km(l.odo)}${l.workshop?' · '+esc(l.workshop):''}</div>
+      </div><div style="text-align:right"><div class="num">${money(logTotal(l))}</div>
+      ${l.photoIds&&l.photoIds.length?`<div class="tiny dim">${l.photoIds.length} photo${l.photoIds.length>1?'s':''}</div>`:''}</div></div></div>`;
+  });
+  return h;
+}
+
+/* ============================ VIEW: MODS ============================ */
+function viewMods(){
+  const mods=DB.mods.filter(m=>MFILTER==='all'||m.vehicleId===MFILTER);
+  const done=mods.filter(m=>m.status==='done').sort((a,b)=>(a.date<b.date?1:-1));
+  const plan=mods.filter(m=>m.status!=='done')
+    .sort((a,b)=>(Number(b.priority||0)-Number(a.priority||0))||((b.added||0)-(a.added||0)));
+  const spent=done.reduce((s,m)=>s+Number(m.cost||0),0);
+  const budget=plan.reduce((s,m)=>s+Number(m.budget||0),0);
+  let h=`<div class="chips">${['all',...DB.vehicles.map(v=>v.id)].map(id=>
+    `<button class="chip ${MFILTER===id?'on':''}" onclick="MFILTER='${id}';render()">${id==='all'?'All vehicles':esc(vehicleOf(id).name)}</button>`).join('')}</div>`;
+  h+=`<div class="card"><div class="row" style="gap:22px">
+    <div><div class="label">Invested</div><div class="big num" style="margin-top:3px">${money(spent)}</div><div class="tiny dim">${done.length} mods done</div></div>
+    <div><div class="label">Wishlist</div><div class="big num" style="margin-top:3px">${money(budget)}</div><div class="tiny dim">${plan.length} planned</div></div>
+  </div></div>`;
+  const hidden=DB.mods.length-mods.length;
+  if(hidden>0)h+=`<div class="card tap" onclick="MFILTER='all';render()" style="border-color:#5C4A26;background:#1C1710">
+    <b>${hidden} mod${hidden>1?'s':''} hidden by the vehicle filter</b>
+    <div class="small muted" style="margin-top:4px">Tap to show all vehicles.</div></div>`;
+  h+=`<div class="sect"><h2>Wishlist</h2><div class="rule"></div><span class="tiny dim num">${plan.length}</span></div>`;
+  if(!plan.length)h+=`<div class="empty small">Nothing planned. Add the parts you want next and set a budget.</div>`;
+  plan.forEach(m=>{h+=modRow(m,true)});
+  h+=`<div class="sect"><h2>Already fitted</h2><div class="rule"></div><span class="tiny dim num">${done.length}</span></div>`;
+  if(!done.length)h+=`<div class="empty small">Log what's already on the bike or car — useful for resale and for knowing what warranty you'd void.</div>`;
+  done.forEach(m=>{h+=modRow(m,false)});
+  return h;
+}
+function modRow(m,planned){
+  const v=vehicleOf(m.vehicleId);
+  const pr=Math.max(0,Math.min(3,Math.round(Number(m.priority)||0)));
+  const stars='●'.repeat(pr)+'○'.repeat(3-pr);
+  return `<div class="card tap" onclick="editMod('${m.id}')">
+    <div class="between"><div class="grow" style="min-width:0">
+      <div class="label">${esc(v?v.name:'—')}${m.category?' · '+esc(m.category):''}</div>
+      <div style="font-weight:500;margin-top:3px" class="trunc">${esc(m.name)}</div>
+      <div class="tiny dim trunc">${planned?'<span class="num">'+stars+'</span> priority':(m.date?fmtDate(m.date):'date not set')}${m.vendor?' · '+esc(m.vendor):''}</div>
+    </div><div style="text-align:right"><div class="num">${money(planned?m.budget:m.cost)}</div>
+    ${planned?`<button class="btn sm" style="margin-top:6px;padding:4px 9px" onclick="event.stopPropagation();modDone('${m.id}')">Fitted</button>`:''}</div></div>
+    ${m.notes?`<div class="small muted" style="margin-top:7px">${esc(m.notes)}</div>`:''}</div>`;
+}
+
+/* ============================ ACTIONS ============================ */
+
+/* ---------- one-shot setup: anchors every schedule item from a few numbers ---------- */
+function monthsBetween(a,b){const A=D(a),B=D(b);return (B.getFullYear()-A.getFullYear())*12+(B.getMonth()-A.getMonth())}
+function anchorVehicle(v,o){
+  const items=Q.items(v.id,false);
+  const odo=Number(o.odo||0), start=o.startDate||today();
+  const hasService=o.mode==='onSchedule';
+  const svcKm=o.lastKm!==''&&o.lastKm!=null?Number(o.lastKm):null;
+  const svcDate=o.lastDate||null;
+  items.forEach(i=>{
+    /* distance anchor */
+    if(Number(i.everyKm)>0){
+      let lk=Math.floor(odo/i.everyKm)*i.everyKm;              // assume kept to the book
+      if(!hasService)lk=0;                                      // nothing ever done
+      if(i.category==='minor'&&svcKm!=null)lk=Math.max(lk,svcKm);
+      i.lastKm=Math.min(lk,odo);
+    } else i.lastKm=0;
+    /* time anchor */
+    if(Number(i.everyMonths)>0){
+      const el=Math.max(0,monthsBetween(start,today()));
+      let ld=addMonths(start,Math.floor(el/i.everyMonths)*i.everyMonths);
+      if(!hasService)ld=start;
+      if(i.category==='minor'&&svcDate&&svcDate>ld)ld=svcDate;
+      i.lastDate=ld;
+    } else i.lastDate=(i.category==='minor'&&svcDate)?svcDate:start;
+  });
+  v.odo=odo; v.odoDate=o.odoDate||today(); v.startDate=start; v.setup=1;
+  if(o.plate)v.plate=o.plate.toUpperCase().trim();
+  if(o.vin)v.vin=o.vin.toUpperCase().trim();
+  /* two odometer points so the km/day rate is measured, not guessed */
+  if(DB.odoLog.filter(x=>x.vehicleId===v.id).length<2){
+    DB.odoLog=DB.odoLog.filter(x=>x.vehicleId!==v.id);
+    DB.odoLog.push({id:uid(),vehicleId:v.id,date:start,odo:0});
+    DB.odoLog.push({id:uid(),vehicleId:v.id,date:v.odoDate,odo:odo});
+  }
+  if(o.taxExpiry){
+    DB.docs.filter(d=>d.vehicleId===v.id&&(d.kind==='Road tax'||d.kind==='Insurance')).forEach(d=>{d.expiry=o.taxExpiry});
+  }
+}
+function setupWizard(vid,chain){
+  const v=vehicleOf(vid);
+  const rest=chain?DB.vehicles.filter(x=>!x.setup&&x.id!==vid):[];
+  form('Set up '+v.name,[
+    {k:'odo',label:'Odometer right now (km)',type:'number',val:v.odo||'',half:1},
+    {k:'odoDate',label:'Reading taken on',type:'date',val:today(),half:1},
+    {k:'startDate',label:'Registered / bought on',type:'date',val:v.startDate||(v.year?v.year+'-01-15':today()),
+      hint:'Used to work out the age of every time-based item, and your km per day.'},
+    {k:'mode',label:'History so far',type:'select',opts:[['onSchedule','Serviced roughly on schedule'],['fresh','Brand new — nothing done yet']],val:v.odo?'onSchedule':'fresh'},
+    {k:'lastKm',label:'Last service at (km)',type:'number',val:'',half:1,hint:'Leave blank if unsure'},
+    {k:'lastDate',label:'Last service on',type:'date',val:'',half:1},
+    {k:'taxExpiry',label:'Road tax + insurance expire on',type:'date',val:''},
+    {k:'plate',label:'Registration number',val:v.plate||'',half:1,ph:'ABC 1234'},
+    {k:'vin',label:'VIN / chassis no.',val:v.vin||'',half:1},
+  ],d=>{
+    anchorVehicle(v,d);
+    toast(v.name+' set up');
+    if(rest.length)setTimeout(()=>setupWizard(rest[0].id,true),380);
+  },`<p class="small muted" style="margin:6px 0 14px">Answer these and every one of the ${DB.items.filter(i=>i.vehicleId===vid).length} schedule items gets its last-done reading and date filled in — items are assumed to have been done at their normal interval, then counted forward from there.</p>`);
+}
+window.setupWizard=setupWizard;
+function setupAll(){
+  const first=DB.vehicles.find(v=>!v.setup)||DB.vehicles[0];
+  if(first)setupWizard(first.id,true);
+}
+window.setupAll=setupAll;
+
+function editVehicle(id){
+  const v=id?vehicleOf(id):{};
+  form(id?'Edit vehicle':'Add vehicle',[
+    {k:'make',label:'Make',val:v.make,ph:'Honda'},
+    {k:'model',label:'Model',val:v.model,ph:'City Hatchback RS'},
+    {k:'name',label:'Short name',val:v.name,ph:'City',hint:'What you call it day to day'},
+    {k:'year',label:'Year',type:'number',val:v.year,half:1},
+    {k:'type',label:'Type',type:'select',opts:[['car','Car'],['moto','Motorcycle']],val:v.type||'car',half:1},
+    {k:'plate',label:'Registration number',val:v.plate,half:1,ph:'ABC 1234'},
+    {k:'odo',label:'Odometer (km)',type:'number',val:v.odo,half:1},
+    {k:'vin',label:'VIN / chassis number',val:v.vin,ph:'17 characters, or the chassis no.',hint:'On the registration card, and stamped on the frame or under the windscreen.'},
+    {k:'engineNo',label:'Engine number',val:v.engineNo,half:1},
+    {k:'colour',label:'Colour',val:v.colour,half:1},
+    {k:'avgKmDay',label:'Est. km per day',type:'number',val:v.avgKmDay||20,hint:'Only used until you log two odometer readings — then it measures the real rate.'},
+    {k:'tyrePsi',label:'Tyre target pressure (PSI)',type:'number',val:v.tyrePsi||32,hint:'Used as the default for all tyre positions on this vehicle.'},
+    {k:'notes',label:'Notes',type:'textarea',val:v.notes},
+  ],d=>{
+    if(id){Object.assign(v,d)}
+    else{const nv=Object.assign({id:uid(),odoDate:today()},d);if(!nv.name)nv.name=nv.model||nv.make;DB.vehicles.push(nv);DB.odoLog.push({id:uid(),vehicleId:nv.id,date:today(),odo:Number(nv.odo||0)});CURV=nv.id}
+    toast(id?'Vehicle updated':'Vehicle added');
+  });
+}
+window.editVehicle=editVehicle;
+
+function updateOdo(vid){
+  const v=vehicleOf(vid);
+  form('Update odometer — '+v.name,[
+    {k:'odo',label:'Reading now (km)',type:'number',val:v.odo,half:1},
+    {k:'date',label:'Date',type:'date',val:today(),half:1},
+  ],d=>{
+    if(Number(d.odo)<Number(v.odo)) toast('Saved — reading is lower than before');
+    v.odo=Number(d.odo);v.odoDate=d.date;
+    DB.odoLog.push({id:uid(),vehicleId:vid,date:d.date,odo:Number(d.odo)});
+    toast('Odometer updated');
+  });
+}
+window.updateOdo=updateOdo;
+
+function itemSheet(id){
+  const it=DB.items.find(i=>i.id===id);if(!it)return;
+  const v=vehicleOf(it.vehicleId), x=statusOf(it,v);
+  sheet(`<h3>${esc(it.name)}</h3>
+    <div class="row" style="gap:8px;margin:6px 0 12px"><span class="pill st-${x.state}">${stateLabel[x.state]}</span>
+    <span class="pill">${esc(it.category)}</span><span class="pill">${esc(v.name)}</span></div>
+    <div class="kv"><span class="muted">Due</span><b>${relDays(x.days)}${x.driver==='km'?' (by distance)':x.days!=null?' (by date)':''}</b></div>
+    <div class="kv"><span class="muted">Interval</span><b>${it.everyKm?km(it.everyKm):''}${it.everyKm&&it.everyMonths?' / ':''}${it.everyMonths?it.everyMonths+' months':''}${!it.everyKm&&!it.everyMonths?'not set':''}</b></div>
+    <div class="kv"><span class="muted">Last done</span><b>${it.lastKm?km(it.lastKm):'—'} · ${fmtDate(it.lastDate)}</b></div>
+    <div class="kv"><span class="muted">Next at</span><b>${x.nextKm?km(x.nextKm):'—'}${x.nextDate?' · '+fmtDate(x.nextDate):''}</b></div>
+    <div class="kv"><span class="muted">Parts</span><b>${money(it.partsCost)}</b></div>
+    <div class="kv"><span class="muted">Labour</span><b>${money(it.labourCost)}</b></div>
+    <div class="kv"><span class="muted">Total</span><b>${money(x.cost)}</b></div>
+    ${it.notes?`<p class="small muted" style="margin-top:10px">${esc(it.notes)}</p>`:''}
+    <div class="row" style="gap:8px;margin-top:14px">
+      <button class="btn pri grow" onclick="markDone('${it.id}')">Mark serviced</button>
+      <button class="btn grow" onclick="icsFor('${it.id}')">Remind me</button>
+    </div>
+    <div class="row" style="gap:8px;margin-top:8px">
+      <button class="btn ghost grow" onclick="editItem('${it.id}')">Edit</button>
+      <button class="btn dang grow" onclick="confirmDo('This removes the item and its schedule.',()=>{DB.items=DB.items.filter(i=>i.id!=='${it.id}')})">Delete</button>
+    </div>`);
+}
+window.itemSheet=itemSheet;
+
+function editItem(id,vid){
+  const it=id?DB.items.find(i=>i.id===id):{vehicleId:vid,category:'minor',active:1,lastDate:today()};
+  form(id?'Edit item':'Add maintenance item',[
+    {k:'name',label:'What gets done',val:it.name,ph:'Engine oil + filter'},
+    {k:'vehicleId',label:'Vehicle',type:'select',opts:DB.vehicles.map(v=>[v.id,v.name]),val:it.vehicleId},
+    {k:'category',label:'Group',type:'select',opts:[['minor','Minor service'],['major','Major service'],['wear','Wear part'],['inspect','Inspection']],val:it.category},
+    {k:'everyKm',label:'Every … km',type:'number',val:it.everyKm,half:1,hint:'0 = not distance based'},
+    {k:'everyMonths',label:'Every … months',type:'number',val:it.everyMonths,half:1,hint:'0 = not time based'},
+    {k:'partsCost',label:'Parts cost',type:'number',val:it.partsCost,half:1},
+    {k:'labourCost',label:'Labour cost',type:'number',val:it.labourCost,half:1},
+    {k:'lastKm',label:'Last done at (km)',type:'number',val:it.lastKm,half:1},
+    {k:'lastDate',label:'Last done on',type:'date',val:it.lastDate||today(),half:1},
+    {k:'notes',label:'Notes',type:'textarea',val:it.notes},
+  ],d=>{
+    if(id)Object.assign(it,d);else DB.items.push(Object.assign({id:uid(),active:1},it,d));
+    toast('Saved');
+  });
+}
+window.editItem=editItem;
+
+function markDone(id){
+  const it=DB.items.find(i=>i.id===id);const v=vehicleOf(it.vehicleId);
+  logForm({vehicleId:v.id,title:it.name,odo:v.odo,parts:it.partsCost,labour:it.labourCost,itemIds:[it.id],date:today()},()=>{
+    it.lastKm=Number(v.odo);it.lastDate=today();
+  });
+}
+window.markDone=markDone;
+
+function logForm(pre,after,existingId){
+  let photos=(pre.photoIds||[]).slice();
+  const fields=[
+    {k:'vehicleId',label:'Vehicle',type:'select',opts:DB.vehicles.map(v=>[v.id,v.name]),val:pre.vehicleId},
+    {k:'title',label:'Work done',val:pre.title,ph:'Minor service'},
+    {k:'date',label:'Date',type:'date',val:pre.date||today(),half:1},
+    {k:'odo',label:'Odometer',type:'number',val:pre.odo,half:1},
+    {k:'workshop',label:'Workshop',val:pre.workshop,ph:'Where you did it'},
+    {k:'parts',label:'Parts',type:'number',val:pre.parts,half:1},
+    {k:'labour',label:'Labour',type:'number',val:pre.labour,half:1},
+    {k:'other',label:'Other charges',type:'number',val:pre.other,half:1},
+    {k:'notes',label:'Notes',type:'textarea',val:pre.notes,ph:'Oil brand, part numbers, what the mechanic said'},
+  ];
+  form(existingId?'Edit service record':'Log a service',fields,d=>{
+    if(existingId){const l=DB.logs.find(x=>x.id===existingId);Object.assign(l,d,{photoIds:photos})}
+    else DB.logs.push(Object.assign({id:uid(),itemIds:pre.itemIds||[],photoIds:photos},d));
+    const v=vehicleOf(d.vehicleId);
+    if(v&&Number(d.odo)>Number(v.odo)){v.odo=Number(d.odo);DB.odoLog.push({id:uid(),vehicleId:v.id,date:d.date,odo:Number(d.odo)})}
+    if(after)after();toast('Service logged');
+  },`<div id="photoWrap"><button class="btn sm ghost" onclick="addPhoto()">+ Receipt photo</button><div class="thumbs" id="thumbs"></div></div><hr class="sep">`);
+  window.addPhoto=()=>pickPhoto(async du=>{const pid=await savePhoto(du);photos.push(pid);drawThumbs()});
+  async function drawThumbs(){const el=document.getElementById('thumbs');if(!el)return;
+    const srcs=await Promise.all(photos.map(getPhoto));el.innerHTML=srcs.filter(Boolean).map(s=>`<img src="${s}">`).join('')}
+  drawThumbs();
+}
+function logSheet(id){
+  const l=DB.logs.find(x=>x.id===id);const v=vehicleOf(l.vehicleId);
+  sheet(`<h3>${esc(l.title||'Service')}</h3>
+    <div class="label" style="margin-bottom:10px">${fmtDate(l.date)} · ${esc(v?v.name:'')} · ${km(l.odo)}</div>
+    ${l.workshop?`<div class="kv"><span class="muted">Workshop</span><b>${esc(l.workshop)}</b></div>`:''}
+    <div class="kv"><span class="muted">Parts</span><b>${money(l.parts)}</b></div>
+    <div class="kv"><span class="muted">Labour</span><b>${money(l.labour)}</b></div>
+    ${Number(l.other)?`<div class="kv"><span class="muted">Other</span><b>${money(l.other)}</b></div>`:''}
+    <div class="kv"><span class="muted">Total</span><b>${money(logTotal(l))}</b></div>
+    ${l.notes?`<p class="small muted" style="margin-top:10px">${esc(l.notes)}</p>`:''}
+    <div class="thumbs" id="thumbs"></div>
+    <div class="row" style="gap:8px;margin-top:14px">
+      <button class="btn ghost grow" onclick="logForm(DB.logs.find(x=>x.id==='${id}'),null,'${id}')">Edit</button>
+      <button class="btn dang grow" onclick="confirmDo('This service record will be removed.',()=>{DB.logs=DB.logs.filter(x=>x.id!=='${id}')})">Delete</button>
+    </div>`);
+  (async()=>{const srcs=await Promise.all((l.photoIds||[]).map(getPhoto));const el=document.getElementById('thumbs');
+    if(el)el.innerHTML=srcs.filter(Boolean).map(s=>`<img src="${s}">`).join('')})();
+}
+window.logSheet=logSheet;window.logForm=logForm;
+
+function editDoc(id,vid){
+  const d=id?DB.docs.find(x=>x.id===id):{vehicleId:vid,kind:'Road tax',remindDays:30,expiry:addMonths(today(),12)};
+  form(id?'Edit paper':'Add road tax / insurance',[
+    {k:'kind',label:'Type',type:'select',opts:['Road tax','Insurance','Inspection (Puspakom)','Warranty','Licence','Other'],val:d.kind},
+    {k:'vehicleId',label:'Vehicle',type:'select',opts:DB.vehicles.map(v=>[v.id,v.name]),val:d.vehicleId},
+    {k:'expiry',label:'Expires on',type:'date',val:d.expiry,half:1},
+    {k:'cost',label:'Renewal cost',type:'number',val:d.cost,half:1},
+    {k:'provider',label:'Provider',val:d.provider,ph:'Etiqa, Allianz, JPJ…'},
+    {k:'remindDays',label:'Warn me … days before',type:'number',val:d.remindDays||30},
+    {k:'notes',label:'Notes',type:'textarea',val:d.notes},
+  ],v=>{if(id)Object.assign(d,v);else DB.docs.push(Object.assign({id:uid()},d,v));toast('Saved')});
+}
+window.editDoc=editDoc;
+function docSheet(id){
+  const d=DB.docs.find(x=>x.id===id),s=docStatus(d),v=vehicleOf(d.vehicleId);
+  sheet(`<h3>${esc(d.kind)}</h3><div class="label" style="margin-bottom:10px">${esc(v?v.name:'')}</div>
+   <div class="kv"><span class="muted">Expires</span><b>${fmtDate(d.expiry)} · ${relDays(s.days)}</b></div>
+   <div class="kv"><span class="muted">Renewal cost</span><b>${money(d.cost)}</b></div>
+   ${d.provider?`<div class="kv"><span class="muted">Provider</span><b>${esc(d.provider)}</b></div>`:''}
+   ${d.notes?`<p class="small muted" style="margin-top:10px">${esc(d.notes)}</p>`:''}
+   <div class="row" style="gap:8px;margin-top:14px">
+     <button class="btn pri grow" onclick="renewDoc('${id}')">Renewed — push 12 months</button>
+     <button class="btn grow" onclick="icsDoc('${id}')">Remind me</button></div>
+   <div class="row" style="gap:8px;margin-top:8px">
+     <button class="btn ghost grow" onclick="editDoc('${id}')">Edit</button>
+     <button class="btn dang grow" onclick="confirmDo('Remove this record.',()=>{DB.docs=DB.docs.filter(x=>x.id!=='${id}')})">Delete</button></div>`);
+}
+window.docSheet=docSheet;
+function renewDoc(id){const d=DB.docs.find(x=>x.id===id);d.expiry=addMonths(d.expiry,12);save();closeSheet();render();toast('Pushed to '+fmtDate(d.expiry))}
+window.renewDoc=renewDoc;
+
+function editMod(id,status){
+  const m=id?DB.mods.find(x=>x.id===id):{status:status||'planned',
+    vehicleId:(MFILTER!=='all'&&vehicleOf(MFILTER))?MFILTER:(DB.vehicles[0]||{}).id,priority:2,date:''};
+  form(id?'Edit modification':'Add modification',[
+    {k:'name',label:'Part or work',val:m.name,ph:'Akrapovic slip-on exhaust'},
+    {k:'vehicleId',label:'Vehicle',type:'select',opts:DB.vehicles.map(v=>[v.id,v.name]),val:m.vehicleId},
+    {k:'status',label:'Status',type:'select',opts:[['planned','Wishlist'],['done','Already fitted']],val:m.status,half:1},
+    {k:'category',label:'Area',type:'select',opts:['Performance','Handling','Cosmetic','Comfort','Protection','Electronics','Audio','Wheels & tyres'],val:m.category,half:1},
+    {k:'budget',label:'Budget',type:'number',val:m.budget,half:1,hint:'For wishlist items'},
+    {k:'cost',label:'Actual cost',type:'number',val:m.cost,half:1,hint:'Once fitted'},
+    {k:'priority',label:'Priority 1–3',type:'number',val:m.priority,half:1,hint:'1 = someday, 3 = next'},
+    {k:'date',label:'Date fitted',type:'date',val:m.date,half:1,hint:'Leave blank for wishlist'},
+    {k:'vendor',label:'Shop / seller',val:m.vendor},
+    {k:'notes',label:'Notes',type:'textarea',val:m.notes,ph:'Part number, warranty effect, what to reverse before service'},
+  ],d=>{
+    d.priority=Math.max(1,Math.min(3,Math.round(Number(d.priority)||1)));
+    if(id)Object.assign(m,d);
+    else DB.mods.push(Object.assign({id:uid(),added:Date.now()},m,d));
+    if(MFILTER!=='all'&&MFILTER!==d.vehicleId)MFILTER='all';
+    VIEW='mods';
+    toast(d.status==='done'?'Added to fitted':'Added to wishlist');
+  });
+}
+window.editMod=editMod;
+function modDone(id){const m=DB.mods.find(x=>x.id===id);m.status='done';if(!m.date)m.date=today();if(!m.cost)m.cost=m.budget;save();render();toast('Moved to fitted')}
+window.modDone=modDone;
+
+/* ============================ AI LAYER — any provider ============================ */
+const PROVIDERS={
+  builtin:{name:'Claude — built in',key:0,vision:1,audio:0,video:0,model:'claude-sonnet-4-6',
+    note:'Free while the app runs inside Claude. Once it is on your home screen, pick a provider below and add a key.'},
+  anthropic:{name:'Claude — your API key',key:1,vision:1,audio:0,video:0,model:'claude-sonnet-4-6',
+    where:'console.anthropic.com',note:'Pay-as-you-go API credits. A Claude Pro subscription does not cover this — it is billed separately.'},
+  gemini:{name:'Google Gemini',key:1,vision:1,audio:1,video:1,model:'gemini-2.0-flash',
+    where:'aistudio.google.com',note:'Has a free tier, no card needed. The only provider here that can listen to engine sounds and watch video.'},
+  openai:{name:'OpenAI',key:1,vision:1,audio:0,video:0,model:'gpt-4o-mini',where:'platform.openai.com',note:'Pay-as-you-go.'},
+  openrouter:{name:'OpenRouter — any model',key:1,vision:1,audio:0,video:0,model:'anthropic/claude-sonnet-4.5',
+    where:'openrouter.ai',note:'One key, hundreds of models. Put the full model slug in the model box.'},
+  custom:{name:'Custom (OpenAI-compatible)',key:1,vision:1,audio:0,video:0,model:'',
+    note:'Anything that speaks the OpenAI chat format — Groq, Together, Ollama on your network, LM Studio.'}
+};
+function aiCfg(){
+  const a=DB.settings.ai||{};
+  const id=a.provider&&PROVIDERS[a.provider]?a.provider:'builtin';
+  return {id,p:PROVIDERS[id],key:(a.keys||{})[id]||'',model:(a.models||{})[id]||PROVIDERS[id].model,baseUrl:a.baseUrl||''};
+}
+function aiCan(what){const c=aiCfg();return !!c.p[what]}
+function aiReady(){const c=aiCfg();return !c.p.key||!!c.key}
+
+/* msgs: [{role:'user'|'assistant', text, atts:[{mime,data}]}]  data = raw base64 */
+async function callAI(msgs,opts){
+  opts=opts||{};const c=aiCfg();const max=opts.maxTokens||1500;
+  if(c.p.key&&!c.key)throw new Error('Add your '+c.p.name+' key in More → AI');
+
+  if(c.id==='builtin'||c.id==='anthropic'){
+    const body={model:c.model,max_tokens:max,messages:msgs.map(m=>({role:m.role,
+      content:[...(m.atts||[]).filter(a=>a.mime.startsWith('image/')).map(a=>({type:'image',source:{type:'base64',media_type:a.mime,data:a.data}})),
+               {type:'text',text:m.text||''}]}))};
+    if(opts.system)body.system=opts.system;
+    const h={'Content-Type':'application/json'};
+    if(c.id==='anthropic'){h['x-api-key']=c.key;h['anthropic-version']='2023-06-01';h['anthropic-dangerous-direct-browser-access']='true'}
+    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:h,body:JSON.stringify(body)});
+    if(!r.ok)throw new Error(await errText(r));
+    const d=await r.json();return d.content.filter(x=>x.type==='text').map(x=>x.text).join('');
+  }
+  if(c.id==='gemini'){
+    const contents=msgs.map(m=>({role:m.role==='assistant'?'model':'user',
+      parts:[...(m.atts||[]).map(a=>({inline_data:{mime_type:a.mime,data:a.data}})),{text:m.text||''}]}));
+    const body={contents,generationConfig:{temperature:opts.json?0.2:0.5,maxOutputTokens:max}};
+    if(opts.json)body.generationConfig.responseMimeType='application/json';
+    if(opts.system)body.systemInstruction={parts:[{text:opts.system}]};
+    const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(c.model)}:generateContent?key=${encodeURIComponent(c.key)}`,
+      {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    if(!r.ok)throw new Error(await errText(r));
+    const d=await r.json();
+    const cand=(d.candidates||[])[0];
+    if(!cand)throw new Error('No answer came back — the file may be too large.');
+    return (cand.content.parts||[]).map(x=>x.text||'').join('');
+  }
+  /* OpenAI-compatible: openai, openrouter, custom */
+  const base=c.id==='openai'?'https://api.openai.com/v1':c.id==='openrouter'?'https://openrouter.ai/api/v1':(c.baseUrl||'').replace(/\/$/,'');
+  if(!base)throw new Error('Set the base URL for your custom provider');
+  const mm=msgs.map(m=>({role:m.role,content:(m.atts||[]).length
+    ? [...(m.atts).filter(a=>a.mime.startsWith('image/')).map(a=>({type:'image_url',image_url:{url:`data:${a.mime};base64,${a.data}`}})),{type:'text',text:m.text||''}]
+    : m.text}));
+  if(opts.system)mm.unshift({role:'system',content:opts.system});
+  const r=await fetch(base+'/chat/completions',{method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+c.key},
+    body:JSON.stringify({model:c.model,messages:mm,max_tokens:max,...(opts.json?{response_format:{type:'json_object'}}:{})})});
+  if(!r.ok)throw new Error(await errText(r));
+  const d=await r.json();return d.choices[0].message.content;
+}
+async function callAIStream(msgs,opts,onDelta){
+  opts=opts||{};const c=aiCfg();const max=opts.maxTokens||1500;
+  if(c.p.key&&!c.key)throw new Error('Add your '+c.p.name+' key in More → AI');
+  const ctrl=new AbortController();AI_ABORT=ctrl;
+  let url,body,headers={'Content-Type':'application/json'},flavour;
+  if(c.id==='builtin'||c.id==='anthropic'){
+    flavour='anthropic';url='https://api.anthropic.com/v1/messages';
+    body={model:c.model,max_tokens:max,stream:true,messages:msgs.map(m=>({role:m.role,
+      content:[...(m.atts||[]).filter(a=>a.mime.startsWith('image/')).map(a=>({type:'image',source:{type:'base64',media_type:a.mime,data:a.data}})),
+               {type:'text',text:m.text||''}]}))};
+    if(opts.system)body.system=opts.system;
+    if(c.id==='anthropic'){headers['x-api-key']=c.key;headers['anthropic-version']='2023-06-01';headers['anthropic-dangerous-direct-browser-access']='true'}
+  } else if(c.id==='gemini'){
+    flavour='gemini';
+    url=`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(c.model)}:streamGenerateContent?alt=sse&key=${encodeURIComponent(c.key)}`;
+    body={contents:msgs.map(m=>({role:m.role==='assistant'?'model':'user',
+      parts:[...(m.atts||[]).map(a=>({inline_data:{mime_type:a.mime,data:a.data}})),{text:m.text||''}]})),
+      generationConfig:{temperature:.5,maxOutputTokens:max}};
+    if(opts.system)body.systemInstruction={parts:[{text:opts.system}]};
+  } else {
+    flavour='openai';
+    const base=c.id==='openai'?'https://api.openai.com/v1':c.id==='openrouter'?'https://openrouter.ai/api/v1':(c.baseUrl||'').replace(/\/$/,'');
+    if(!base)throw new Error('Set the base URL for your custom provider');
+    url=base+'/chat/completions';headers['Authorization']='Bearer '+c.key;
+    const mm=msgs.map(m=>({role:m.role,content:(m.atts||[]).length
+      ?[...(m.atts).filter(a=>a.mime.startsWith('image/')).map(a=>({type:'image_url',image_url:{url:`data:${a.mime};base64,${a.data}`}})),{type:'text',text:m.text||''}]
+      :m.text}));
+    if(opts.system)mm.unshift({role:'system',content:opts.system});
+    body={model:c.model,messages:mm,max_tokens:max,stream:true};
+  }
+  const r=await fetch(url,{method:'POST',headers,body:JSON.stringify(body),signal:ctrl.signal});
+  if(!r.ok)throw new Error(await errText(r));
+  if(!r.body||!r.body.getReader){const d=await r.json();const t=pluck(d,flavour);onDelta(t,t);return t}
+  const reader=r.body.getReader(),dec=new TextDecoder();let buf='',full='';
+  while(true){
+    const {done,value}=await reader.read();if(done)break;
+    buf+=dec.decode(value,{stream:true});
+    const lines=buf.split('\n');buf=lines.pop();
+    for(const line of lines){
+      const t=line.trim();if(!t.startsWith('data:'))continue;
+      const payload=t.slice(5).trim();
+      if(!payload||payload==='[DONE]')continue;
+      let j;try{j=JSON.parse(payload)}catch(e){continue}
+      let piece='';
+      if(flavour==='anthropic')piece=(j.type==='content_block_delta'&&j.delta&&j.delta.text)||'';
+      else if(flavour==='gemini')piece=(((j.candidates||[])[0]||{}).content||{}).parts?.map(x=>x.text||'').join('')||'';
+      else piece=(((j.choices||[])[0]||{}).delta||{}).content||'';
+      if(piece){full+=piece;onDelta(piece,full)}
+    }
+  }
+  AI_ABORT=null;
+  if(!full)throw new Error('Empty reply — the file may be too large for this model.');
+  return full;
+}
+function pluck(d,f){
+  if(f==='anthropic')return (d.content||[]).filter(x=>x.type==='text').map(x=>x.text).join('');
+  if(f==='gemini')return ((((d.candidates||[])[0]||{}).content||{}).parts||[]).map(x=>x.text||'').join('');
+  return ((d.choices||[])[0]||{}).message?.content||'';
+}
+let AI_ABORT=null;
+async function errText(r){
+  let t='';try{const j=await r.json();t=(j.error&&(j.error.message||j.error.type))||JSON.stringify(j).slice(0,140)}catch(e){t=await r.text().catch(()=>'')}
+  if(r.status===401||r.status===403)return 'Key rejected ('+r.status+'). Check it in More → AI.';
+  if(r.status===429)return 'Rate limited — wait a moment, or the free quota is used up.';
+  return (t||('HTTP '+r.status)).slice(0,180);
+}
+function parseJSON(t){
+  let s=String(t).replace(/```json|```/g,'').trim();
+  const a=s.indexOf('{'),b=s.lastIndexOf('}');
+  if(a>=0&&b>a)s=s.slice(a,b+1);
+  return JSON.parse(s);
+}
+
+/* ---------- context the AI gets about your garage ---------- */
+function vehicleContext(v){
+  if(!v)return 'No specific vehicle selected.';
+  const due=Q.items(v.id).map(i=>statusOf(i,v))
+    .filter(x=>x.state==='over'||x.state==='soon').slice(0,8)
+    .map(x=>`- ${x.item.name}: ${x.state==='over'?'OVERDUE':'due soon'} (${relDays(x.days)})`).join('\n');
+  const hist=Q.logs(v.id).sort((a,b)=>a.date<b.date?1:-1).slice(0,6)
+    .map(l=>`- ${l.date} @ ${l.odo} km: ${l.title} (${money(logTotal(l))})`).join('\n');
+  const mods=DB.mods.filter(m=>m.vehicleId===v.id&&m.status==='done').map(m=>'- '+m.name).join('\n');
+  return `VEHICLE: ${v.year||''} ${v.make||''} ${v.model||v.name}${v.type==='moto'?' (motorcycle)':''}
+Odometer: ${km(v.odo)} · averaging ${avgKmDay(v).toFixed(0)} km/day${v.plate?' · plate '+v.plate:''}${v.vin?' · VIN '+v.vin:''}
+${due?'DUE OR OVERDUE NOW:\n'+due:'Nothing overdue.'}
+${hist?'RECENT SERVICE:\n'+hist:'No service logged yet.'}
+${mods?'MODIFICATIONS FITTED:\n'+mods:''}`;
+}
+function askSystem(){return `You are a straight-talking, experienced mechanic advising the owner of the vehicle described below. You work on both motorcycles and cars.
+How to answer:
+- Lead with the most likely cause or the direct answer. No preamble.
+- Be specific to this vehicle: real part names, fluid grades, torque figures and intervals where you know them.
+- When you are shown a photo, say what you can actually see and what you cannot. When you hear a recording, describe the character of the noise (rhythm, whether it follows engine speed or road speed) before naming causes.
+- Rank possible causes by likelihood and say how to tell them apart with a simple test the owner can do.
+- Give a rough Malaysian workshop cost (${DB.settings.currency}) for each fix.
+- Say plainly when something is a safety issue and should not be ridden or driven.
+- Be honest about uncertainty. Never invent a part number or a torque spec — say you are not sure and what to check it against.
+- Keep it short. Use a few short paragraphs or a tight list, not an essay.
+
+OWNER'S GARAGE CONTEXT:
+`}
+
+/* ---------- service book lookup ---------- */
+const AI_SCHEMA=`{"vehicle":"string","source":"string","items":[{"name":"string","category":"minor|major|wear|inspect","everyKm":number,"everyMonths":number,"partsCost":number,"labourCost":number,"notes":"string"}],"tips":["string"]}`;
+function aiPrompt(v,extra){
+  return `You are a service advisor with the factory maintenance schedule for a ${v.year||''} ${v.make||''} ${v.model||v.name}${v.type==='moto'?' (motorcycle)':''}.
+${v.vin?'VIN/chassis: '+v.vin+' — use it to identify the exact variant if you can.':''}
+Region: Malaysia. Currency: ${DB.settings.currency}. Prices should reflect typical independent-workshop rates; if the vehicle is normally serviced at an authorised centre, use those rates and say so in notes.
+Return the periodic maintenance schedule from the owner's manual, plus realistic wear items.
+Rules:
+- everyKm 0 means the item is time based only. everyMonths 0 means distance based only.
+- category: "minor" = every routine service (oil etc), "major" = longer-interval replacement, "wear" = replace when worn, "inspect" = check only.
+- partsCost and labourCost are per replacement, numbers only, no currency symbol.
+- 12 to 20 items. Be specific about grades and part types (oil viscosity, plug type, fluid spec).
+${extra?'- Extra context from the owner: '+extra:''}
+Reply with ONLY minified JSON matching this shape, no markdown, no commentary:
+${AI_SCHEMA}`;
+}
+let AI_RESULT=null;
+function aiSheet(vid){
+  const v=vehicleOf(vid);const c=aiCfg();
+  sheet(`<h3>AI service book</h3>
+   <p class="small muted" style="margin:6px 0 14px">Writes the factory intervals and typical Malaysian prices for the <b>${esc(v.year||'')} ${esc(v.make)} ${esc(v.model||v.name)}</b> straight into your schedule. Check anything important against the real owner's manual — AI gets details wrong.</p>
+   <div class="f"><label>Anything it should know</label><textarea id="aiExtra" placeholder="e.g. e:HEV hybrid variant, ridden in heavy rain and dust, I use fully synthetic"></textarea></div>
+   <div class="f"><label>Replace or add</label><div class="seg" id="aiMode">
+     <button class="on" data-m="replace">Replace schedule</button><button data-m="add">Add to existing</button></div></div>
+   <button class="btn pri full" id="aiRun"><svg viewBox="0 0 24 24">${ICONS.spark}</svg>Fetch schedule</button>
+   <div class="hint" style="text-align:center;margin-top:8px">${esc(c.p.name)} · ${esc(c.model)} — change in More → AI</div>
+   <div id="aiOut" style="margin-top:14px"></div>`);
+  let mode='replace';
+  document.getElementById('aiMode').onclick=e=>{const b=e.target.closest('button');if(!b)return;
+    [...e.currentTarget.children].forEach(x=>x.classList.remove('on'));b.classList.add('on');mode=b.dataset.m};
+  document.getElementById('aiRun').onclick=async()=>{
+    const out=document.getElementById('aiOut'),btn=document.getElementById('aiRun');
+    btn.disabled=true;btn.innerHTML='<span class="spin"></span> Reading the manual…';out.innerHTML='';
+    try{
+      const raw=await callAI([{role:'user',text:aiPrompt(v,document.getElementById('aiExtra').value.trim())}],{json:true,maxTokens:2200});
+      const j=parseJSON(raw);AI_RESULT={j,vid,mode};
+      const tot=(j.items||[]).reduce((s,i)=>s+Number(i.partsCost||0)+Number(i.labourCost||0),0);
+      out.innerHTML=`<div class="label">${(j.items||[]).length} items · ${money(tot)} if everything replaced</div>
+        <div style="max-height:38vh;overflow:auto;margin:8px 0">${(j.items||[]).map(i=>`<div class="kv"><span class="muted trunc">${esc(i.name)}<br><span class="tiny dim">${i.everyKm?km(i.everyKm):''}${i.everyKm&&i.everyMonths?' / ':''}${i.everyMonths?i.everyMonths+' mo':''} · ${esc(i.category||'')}</span></span><b>${money(Number(i.partsCost||0)+Number(i.labourCost||0))}</b></div>`).join('')}</div>
+        ${j.tips&&j.tips.length?`<div class="small muted">${j.tips.map(t=>'• '+esc(t)).join('<br>')}</div>`:''}
+        <button class="btn pri full" style="margin-top:12px" onclick="aiImport()">Load into ${esc(v.name)}</button>`;
+      btn.style.display='none';
+    }catch(e){
+      out.innerHTML=`<div class="card" style="border-color:#4A2A27"><b>That didn't work.</b>
+        <p class="small muted" style="margin:6px 0 0">${esc(e.message)}</p></div>`;
+      btn.disabled=false;btn.innerHTML='Try again';
+    }
+  };
+}
+window.aiSheet=aiSheet;
+function aiImport(){
+  const {j,vid,mode}=AI_RESULT;const v=vehicleOf(vid);
+  if(mode==='replace')DB.items=DB.items.filter(i=>i.vehicleId!==vid);
+  (j.items||[]).forEach(i=>DB.items.push({id:uid(),vehicleId:vid,name:i.name,category:['minor','major','wear','inspect'].includes(i.category)?i.category:'major',
+    everyKm:Number(i.everyKm||0),everyMonths:Number(i.everyMonths||0),partsCost:Number(i.partsCost||0),labourCost:Number(i.labourCost||0),
+    notes:i.notes||'',lastKm:Number(v.odo||0),lastDate:today(),active:1}));
+  save();closeSheet();render();toast('Schedule loaded — check the last-done dates');
+}
+window.aiImport=aiImport;
+
+
+/* ============================ ASK — chat surface ============================ */
+let ASK_V=null, ATTS=[], REC=null, RECT=null, ASK_BUSY=false, ASK_DRAFT='', ASK_PINNED=true;
+
+function md(t){
+  let h=esc(t);
+  h=h.replace(/```([\s\S]*?)```/g,(m,c)=>`<pre>${c.trim()}</pre>`);
+  h=h.replace(/`([^`\n]+)`/g,'<code>$1</code>');
+  h=h.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/(^|\s)\*([^*\n]+)\*/g,'$1<em>$2</em>');
+  const lines=h.split('\n');let out=[],list=null;
+  for(let raw of lines){
+    const line=raw.trimEnd();
+    let m;
+    if(/^\s*#{1,3}\s+/.test(line)){ if(list){out.push(`</${list}>`);list=null}
+      out.push(`<h4>${line.replace(/^\s*#{1,3}\s+/,'')}</h4>`);continue}
+    if((m=line.match(/^\s*[-•*]\s+(.*)$/))){ if(list!=='ul'){if(list)out.push(`</${list}>`);out.push('<ul>');list='ul'}
+      out.push(`<li>${m[1]}</li>`);continue}
+    if((m=line.match(/^\s*(\d+)[.)]\s+(.*)$/))){ if(list!=='ol'){if(list)out.push(`</${list}>`);out.push('<ol>');list='ol'}
+      out.push(`<li>${m[2]}</li>`);continue}
+    if(list){out.push(`</${list}>`);list=null}
+    out.push(line.trim()?`<p>${line}</p>`:'');
+  }
+  if(list)out.push(`</${list}>`);
+  return out.join('');
+}
+async function fileToAtt(f){
+  if(f.size>18*1024*1024&&!f.type.startsWith('image/'))
+    throw new Error('That clip is '+(f.size/1048576).toFixed(0)+' MB. Keep it under 18 MB — 10 seconds is plenty.');
+  if(f.type.startsWith('image/')){
+    const du=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(f)});
+    const img=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=du});
+    const max=1280,sc=Math.min(1,max/Math.max(img.width,img.height));
+    const c=document.createElement('canvas');c.width=img.width*sc;c.height=img.height*sc;
+    c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+    const out=c.toDataURL('image/jpeg',.72);
+    return {mime:'image/jpeg',data:out.split(',')[1],preview:out,kind:'photo'};
+  }
+  const du=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(f)});
+  return {mime:(f.type||'application/octet-stream').split(';')[0],data:du.split(',')[1],preview:'',
+    kind:f.type.startsWith('audio')?'sound':f.type.startsWith('video')?'video':'file',
+    name:f.name||'',size:(f.size/1048576).toFixed(1)+' MB'};
+}
+function attachFile(accept,capture){
+  const need=/audio/.test(accept)?'audio':/video/.test(accept)?'video':'vision';
+  if(!aiCan(need))return toast('This AI cannot take '+(need==='audio'?'sound':need==='video'?'video':'photos')+' — switch to Gemini in More → AI');
+  const i=document.createElement('input');i.type='file';i.accept=accept;if(capture)i.setAttribute('capture','environment');
+  i.onchange=async()=>{const f=i.files[0];if(!f)return;
+    try{ATTS.push(await fileToAtt(f));paintAtts()}catch(e){toast(e.message)}};
+  i.click();
+}
+window.attachFile=attachFile;
+async function toggleRecord(){
+  if(REC)return stopRecord();
+  if(!aiCan('audio'))return toast('Only Gemini can listen — switch provider in More → AI');
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)return toast('This browser cannot record');
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+    const types=['audio/mp4','audio/ogg;codecs=opus','audio/webm;codecs=opus','audio/webm'];
+    const mt=(window.MediaRecorder&&types.find(t=>MediaRecorder.isTypeSupported(t)))||'';
+    const chunks=[];const t0=Date.now();
+    REC=new MediaRecorder(stream,mt?{mimeType:mt}:undefined);
+    REC.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};
+    REC.onstop=async()=>{
+      stream.getTracks().forEach(t=>t.stop());
+      const type=(REC.mimeType||'audio/mp4').split(';')[0];
+      const b=new Blob(chunks,{type});
+      const du=await new Promise(res=>{const r=new FileReader();r.onload=()=>res(r.result);r.readAsDataURL(b)});
+      ATTS.push({mime:type,data:du.split(',')[1],kind:'sound',name:Math.round((Date.now()-t0)/1000)+'s',preview:''});
+      REC=null;clearInterval(RECT);RECT=null;paintAtts();
+    };
+    REC.start();
+    RECT=setInterval(()=>{const el=document.getElementById('recTime');
+      if(el)el.textContent=Math.round((Date.now()-t0)/1000)+'s'},250);
+    paintAtts();
+  }catch(e){toast('Microphone blocked — allow it in your browser settings')}
+}
+window.toggleRecord=toggleRecord;
+function stopRecord(){try{REC&&REC.state!=='inactive'&&REC.stop()}catch(e){}}
+window.stopRecord=stopRecord;
+function dropAtt(i){ATTS.splice(i,1);paintAtts()}
+window.dropAtt=dropAtt;
+
+const ASK_SUGGEST=[
+  ['What is this warning light?','Snap the dash and I will read it'],
+  ['Diagnose a noise','Record it and I will listen'],
+  ['Is this worn out?','Photo of a pad, tyre, belt or chain'],
+  ['Is this quote fair?','Photo of the invoice or type the price'],
+];
+function viewAsk(){
+  if(!ASK_V||!vehicleOf(ASK_V))ASK_V=(DB.vehicles[0]||{}).id;
+  const v=vehicleOf(ASK_V),c=aiCfg();
+  return `
+  <div class="chatbar">
+    <div class="chips" style="margin:0;padding:0">
+      ${DB.vehicles.map(x=>`<button class="chip ${ASK_V===x.id?'on':''}" onclick="switchAsk('${x.id}')">${esc(x.name)}</button>`).join('')}
+      <button class="chip" onclick="clearThread()">Clear chat</button>
+    </div>
+  </div>
+  <div id="thread" class="thread"></div>
+  <div class="composer">
+    <div id="attRow"></div>
+    <div class="inputline">
+      <button class="iconbtn" onclick="attachFile('image/*',1)" aria-label="Add photo"><svg viewBox="0 0 24 24"><rect x="3" y="5.5" width="18" height="14" rx="2.5"/><circle cx="12" cy="12.5" r="3.4"/><path d="M8 5.5 9.2 3.4h5.6L16 5.5"/></svg></button>
+      <button class="iconbtn" id="micBtn" onclick="toggleRecord()" aria-label="Record sound"><svg viewBox="0 0 24 24"><rect x="9" y="2.6" width="6" height="11" rx="3"/><path d="M5.5 11.4a6.5 6.5 0 0 0 13 0M12 18v3.2"/></svg></button>
+      <button class="iconbtn" onclick="attachFile('video/*',1)" aria-label="Add video"><svg viewBox="0 0 24 24"><rect x="2.6" y="6" width="13" height="12" rx="2.4"/><path d="m15.6 11 5.8-3.2v8.4L15.6 13z"/></svg></button>
+      <textarea id="askIn" rows="1" placeholder="Ask about the ${esc(v?v.name:'vehicle')}…"></textarea>
+      <button class="sendbtn" id="sendBtn" onclick="askSend()" aria-label="Send">
+        <svg viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></svg></button>
+    </div>
+    <div class="tiny dim" style="text-align:center;margin-top:7px">${esc(c.p.name)} · ${aiCan('audio')?'photos, sound and video':'photos and text'} · answers can be wrong, check anything safety related</div>
+  </div>`;
+}
+function switchAsk(id){ASK_V=id;render()}
+window.switchAsk=switchAsk;
+
+function paintThread(streamText){
+  const el=document.getElementById('thread');if(!el)return;
+  const v=vehicleOf(ASK_V);
+  const thread=Q.chat(ASK_V);
+  let h='';
+  if(!thread.length&&!ASK_BUSY){
+    h+=`<div class="welcome">
+      <div class="wicon"><svg viewBox="0 0 24 24">${ICONS.spark}</svg></div>
+      <h2>Ask about the ${esc(v?v.model||v.name:'vehicle')}</h2>
+      <p class="muted small">I already know it has done ${v?km(v.odo):'—'}, what you last serviced and what is overdue. Show me a photo, record the noise, or just ask.</p>
+      <div class="sugg">${ASK_SUGGEST.map(([q,sub],qi)=>
+        `<button onclick="askSuggest(${qi})"><b>${esc(q)}</b><span>${esc(sub)}</span></button>`).join('')}</div>
+    </div>`;
+  }
+  thread.forEach((m,i)=>{
+    if(m.role==='user'){
+      h+=`<div class="msg user"><div class="ubub">${(m.att||[]).length?`<div class="uatt">${m.att.map(a=>`<span>${esc(a)}</span>`).join('')}</div>`:''}${esc(m.text)||'<i class="dim">attachment</i>'}</div></div>`;
+    } else {
+      h+=`<div class="msg bot"><div class="who"><span class="avatar"><svg viewBox="0 0 24 24">${ICONS.spark}</svg></span>Garajku</div>
+        <div class="body">${md(m.text)}</div>
+        <div class="acts"><button onclick="copyMsg('${m.id}')">Copy</button>
+        <button onclick="noteFromAnswer('${m.id}')">Save to notes</button>
+        ${i===thread.length-1?`<button onclick="retryAsk()">Retry</button>`:''}</div></div>`;
+    }
+  });
+  if(ASK_BUSY){
+    h+=`<div class="msg bot"><div class="who"><span class="avatar"><svg viewBox="0 0 24 24">${ICONS.spark}</svg></span>Garajku</div>
+      <div class="body">${streamText?md(streamText)+'<span class="caret"></span>':'<span class="dots"><i></i><i></i><i></i></span>'}</div></div>`;
+  }
+  el.innerHTML=h;
+  if(ASK_PINNED)el.scrollTop=el.scrollHeight;
+}
+function paintAtts(){
+  const el=document.getElementById('attRow');if(!el)return;
+  let h='';
+  if(REC)h+=`<div class="recbar"><span class="recdot"></span>Listening… <span id="recTime" class="num">0s</span>
+     <button class="btn sm pri" style="margin-left:auto;padding:5px 12px" onclick="stopRecord()">Stop</button></div>`;
+  if(ATTS.length)h+=`<div class="attrow">${ATTS.map((a,i)=>`<div class="att" onclick="dropAtt(${i})">
+     ${a.preview?`<img src="${a.preview}" alt="">`:`<span class="attk">${esc(a.kind)}<br>${esc(a.name||'')}</span>`}<span class="x">×</span></div>`).join('')}</div>`;
+  el.innerHTML=h;
+  const mb=document.getElementById('micBtn');if(mb)mb.classList.toggle('rec',!!REC);
+}
+function askSuggest(i){const s=ASK_SUGGEST[i];if(s)askQuick(s[0])}
+window.askSuggest=askSuggest;
+function askQuick(q){const el=document.getElementById('askIn');if(el){el.value=q;ASK_DRAFT=q;el.focus();autoGrow(el)}}
+window.askQuick=askQuick;
+function autoGrow(el){el.style.height='auto';el.style.height=Math.min(132,el.scrollHeight)+'px'}
+function clearThread(){
+  if(!(DB.chat||[]).some(m=>m.vehicleId===ASK_V))return;
+  confirmDo('Clear this conversation.',()=>{DB.chat=(DB.chat||[]).filter(m=>m.vehicleId!==ASK_V)});
+}
+window.clearThread=clearThread;
+function noteFromAnswer(id){
+  const m=(DB.chat||[]).find(x=>x.id===id);if(!m)return;
+  const v=vehicleOf(m.vehicleId);if(!v)return;
+  v.notes=((v.notes||'')+'\n\n'+m.text.slice(0,700)).trim();save();toast('Saved to '+v.name+' notes');
+}
+window.noteFromAnswer=noteFromAnswer;
+function retryAsk(){
+  const t=Q.chat(ASK_V);
+  const lastUser=[...t].reverse().find(m=>m.role==='user');if(!lastUser)return;
+  const idx=DB.chat.lastIndexOf(t[t.length-1]);
+  if(t[t.length-1].role==='assistant')DB.chat.splice(idx,1);
+  runAsk(lastUser.text,[]);
+}
+window.retryAsk=retryAsk;
+function stopAsk(){if(AI_ABORT){AI_ABORT.abort();AI_ABORT=null}}
+window.stopAsk=stopAsk;
+
+async function askSend(){
+  if(ASK_BUSY)return stopAsk();
+  const el=document.getElementById('askIn');
+  const text=(el?el.value:ASK_DRAFT).trim();
+  if(!text&&!ATTS.length)return;
+  if(REC){stopRecord();return toast('Recording stopped — tap send again')}
+  const sending=ATTS.slice();ATTS=[];ASK_DRAFT='';
+  if(el){el.value='';autoGrow(el)}
+  paintAtts();
+  DB.chat=DB.chat||[];
+  DB.chat.push({id:uid(),role:'user',text,ts:Date.now(),vehicleId:ASK_V,att:sending.map(a=>a.kind)});
+  save();
+  await runAsk(text,sending);
+}
+window.askSend=askSend;
+async function runAsk(text,atts){
+  const v=vehicleOf(ASK_V);
+  ASK_BUSY=true;ASK_PINNED=true;setSend(true);paintThread('');
+  let acc='';
+  try{
+    const hist=DB.chat.filter(m=>m.vehicleId===ASK_V&&m.text).slice(-11,-1).map(m=>({role:m.role,text:m.text}));
+    const msgs=[...hist,{role:'user',text:text||'Look at what I attached and tell me what you see.',atts}];
+    const ans=await callAIStream(msgs,{system:askSystem()+vehicleContext(v),maxTokens:1400},
+      (piece,full)=>{acc=full;paintThread(full)});
+    DB.chat.push({id:uid(),role:'assistant',text:ans,ts:Date.now(),vehicleId:ASK_V});
+  }catch(e){
+    const aborted=e.name==='AbortError';
+    DB.chat.push({id:uid(),role:'assistant',vehicleId:ASK_V,ts:Date.now(),
+      text:aborted?(acc||'*Stopped.*'):'**That did not work.** '+e.message});
+  }
+  if(DB.chat.length>150)DB.chat=DB.chat.slice(-150);
+  ASK_BUSY=false;AI_ABORT=null;setSend(false);save();paintThread();
+}
+function setSend(busy){
+  const b=document.getElementById('sendBtn');if(!b)return;
+  b.classList.toggle('stop',busy);
+  b.innerHTML=busy?'<svg viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" rx="2"/></svg>'
+                  :'<svg viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></svg>';
+}
+function askMount(){
+  const el=document.getElementById('askIn');if(!el)return;
+  el.value=ASK_DRAFT;autoGrow(el);
+  el.oninput=e=>{ASK_DRAFT=e.target.value;autoGrow(e.target)};
+  el.onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey&&!/Android|iPhone|iPad/i.test(navigator.userAgent||'')){e.preventDefault();askSend()}};
+  const th=document.getElementById('thread');
+  if(th)th.onscroll=()=>{ASK_PINNED=th.scrollHeight-th.scrollTop-th.clientHeight<70};
+  paintThread();paintAtts();setSend(ASK_BUSY);
+}
+
+
+/* ============================ DRIVE — live GPS speedometer & trip logger ============================ */
+const TRIP={
+  on:false, vid:null, watch:null, wake:null, t0:0, pausedMs:0, lastMoveT:0,
+  pts:[], dist:0, pend:0, anchor:null, anchorT:0, max:0, speed:0, acc:null, fix:false, moving:false, pausedAt:0,
+  alertAt:0, lastAlert:0, raf:null
+};
+function haversine(a,b){
+  const R=6371000,toR=x=>x*Math.PI/180;
+  const dLat=toR(b.lat-a.lat),dLon=toR(b.lon-a.lon);
+  const la1=toR(a.lat),la2=toR(b.lat);
+  const h=Math.sin(dLat/2)**2+Math.cos(la1)*Math.cos(la2)*Math.sin(dLon/2)**2;
+  return 2*R*Math.asin(Math.min(1,Math.sqrt(h)));
+}
+function hhmmss(ms){
+  const s=Math.max(0,Math.floor(ms/1000));
+  const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),ss=s%60;
+  return (h?h+':':'')+String(m).padStart(h?2:1,'0')+':'+String(ss).padStart(2,'0');
+}
+function tripElapsed(){return TRIP.on?(Date.now()-TRIP.t0-TRIP.pausedMs):0}
+
+function openDrive(vid){
+  if(!DB.vehicles.length)return toast('Add a vehicle first');
+  TRIP.vid=vid||TRIP.vid||(DB.vehicles[0]||{}).id;
+  if(!vehicleOf(TRIP.vid))TRIP.vid=(DB.vehicles[0]||{}).id;
+  TRIP.alertAt=Number((DB.settings.driveAlert)||0);
+  document.getElementById('drive').classList.add('on');
+  document.body.classList.add('noscroll');
+  paintDrive();
+}
+window.openDrive=openDrive;
+function closeDrive(){
+  if(TRIP.on)return toast('Stop the trip first');
+  document.getElementById('drive').classList.remove('on');
+  document.body.classList.remove('noscroll');
+  render();
+}
+window.closeDrive=closeDrive;
+
+async function startTrip(){
+  if(TRIP.on)return;
+  if(!navigator.geolocation)return toast('This device has no GPS access');
+  const v=vehicleOf(TRIP.vid);
+  if(!v)return toast('Pick a vehicle first');
+  TRIP.on=true;TRIP.t0=Date.now();TRIP.pausedMs=0;TRIP.pts=[];TRIP.dist=0;TRIP.pend=0;TRIP.anchor=null;TRIP.anchorT=0;TRIP.max=0;
+  TRIP.speed=0;TRIP.fix=false;TRIP.acc=null;TRIP.moving=false;TRIP.pausedAt=0;TRIP.lastMoveT=Date.now();
+  TRIP.startOdo=Number(v.odo||0);
+  try{
+    if('wakeLock' in navigator){TRIP.wake=await navigator.wakeLock.request('screen');
+      TRIP.wake.addEventListener&&TRIP.wake.addEventListener('release',()=>{TRIP.wake=null})}
+  }catch(e){}
+  TRIP.watch=navigator.geolocation.watchPosition(onFix,onFixErr,
+    {enableHighAccuracy:true,maximumAge:1000,timeout:20000});
+  tick();
+  paintDrive();
+}
+window.startTrip=startTrip;
+
+function onFix(pos){
+  const c=pos.coords;
+  TRIP.acc=c.accuracy;
+  if(c.accuracy>50){paintDrive();return}          // too vague to trust
+  TRIP.fix=true;
+  const now=pos.timestamp||Date.now();
+  const pt={lat:c.latitude,lon:c.longitude,t:now};
+  // speed: prefer the device's own value, else derive it
+  let sp=(c.speed!=null&&c.speed>=0&&isFinite(c.speed))?c.speed:null;
+  const prev=TRIP.pts[TRIP.pts.length-1];
+  if(prev){
+    const step=haversine(prev,pt), dt=(now-prev.t)/1000;
+    if(sp==null&&dt>0)sp=step/dt;
+    // Reject physically impossible jumps. dt can be zero or negative when fixes
+    // arrive out of order, so a step that large is untrustworthy either way.
+    const tooFast = dt>0 ? (step/dt)>90 : step>200;
+    if(tooFast){TRIP.pts.push(pt);TRIP.anchor=pt;TRIP.speed=0;paintDrive();return}
+  }
+  // Distance is measured as net displacement from an anchor, not as a sum of
+  // steps. Parked jitter wanders around the anchor and never commits; real
+  // crawling walks away from it and does. This is what keeps a traffic jam
+  // honest without inventing kilometres in a car park.
+  if(!TRIP.anchor){TRIP.anchor=pt;TRIP.anchorT=now}
+  else{
+    const net=haversine(TRIP.anchor,pt);
+    const gate=Math.max(10,(c.accuracy||10)*0.8);
+    if(net>=gate){
+      const span=Math.max(1,(now-(TRIP.anchorT||now))/1000);
+      // never credit more than ~320 km/h worth of ground between anchors
+      TRIP.dist += Math.min(net, span*90);
+      TRIP.anchor=pt;TRIP.anchorT=now;
+    }
+  }
+  TRIP.pts.push(pt);
+  if(TRIP.pts.length>5000)TRIP.pts.splice(0,2000);
+  TRIP.speed=Math.max(0,(sp||0)*3.6);
+  if(TRIP.speed>TRIP.max&&TRIP.speed<300)TRIP.max=TRIP.speed;
+  TRIP.moving=TRIP.speed>3;
+  if(TRIP.moving)TRIP.lastMoveT=Date.now();
+  if(TRIP.alertAt>0&&TRIP.speed>TRIP.alertAt&&Date.now()-TRIP.lastAlert>8000){
+    TRIP.lastAlert=Date.now();
+    try{navigator.vibrate&&navigator.vibrate([120,60,120])}catch(e){}
+  }
+  paintDrive();
+}
+function onFixErr(e){
+  TRIP.fix=false;
+  TRIP.gpsErr = e.code===1?'Location permission denied'
+    : e.code===2?'No GPS signal' : 'Waiting for GPS';
+  paintDrive();
+}
+function tick(){
+  if(!TRIP.on)return;
+  paintDrive();
+  TRIP.raf=setTimeout(tick,1000);
+}
+async function stopTrip(){
+  if(!TRIP.on)return;
+  TRIP.on=false;
+  if(TRIP.watch!=null){try{navigator.geolocation.clearWatch(TRIP.watch)}catch(e){}TRIP.watch=null}
+  if(TRIP.raf){clearTimeout(TRIP.raf);TRIP.raf=null}
+  if(TRIP.wake){try{await TRIP.wake.release()}catch(e){}TRIP.wake=null}
+  const kmDone=TRIP.dist/1000;
+  const dur=tripElapsed();
+  const v=vehicleOf(TRIP.vid);
+  if(kmDone<0.1||!v){paintDrive();return toast('Trip too short to record')}
+  const movingSec=Math.max(1,dur/1000);
+  const avg=kmDone/(movingSec/3600);
+  tripSummary({km:kmDone,dur,avg,max:TRIP.max,vid:TRIP.vid});
+}
+window.stopTrip=stopTrip;
+
+function tripSummary(r){
+  const v=vehicleOf(r.vid);
+  const newOdo=Math.round(Number(v.odo||0)+r.km);
+  sheet(`<h3>Trip finished</h3>
+    <div class="label" style="margin-bottom:12px">${esc(v.name)}</div>
+    <div class="row" style="gap:18px;margin-bottom:6px">
+      <div><div class="label">Distance</div><div class="big num">${r.km.toFixed(1)} km</div></div>
+      <div><div class="label">Time</div><div class="big num">${hhmmss(r.dur)}</div></div>
+    </div>
+    <div class="kv"><span class="muted">Average speed</span><b>${isFinite(r.avg)?r.avg.toFixed(0):'—'} km/h</b></div>
+    <div class="kv"><span class="muted">Top speed</span><b>${r.max.toFixed(0)} km/h</b></div>
+    <div class="kv"><span class="muted">Odometer</span><b>${km(v.odo)} → ${km(newOdo)}</b></div>
+    <p class="small muted" style="margin:12px 0 0">GPS distance runs a little short of the dashboard reading. Adjust it if you want it exact.</p>
+    <div class="f" style="margin-top:10px"><label>Odometer after this trip</label>
+      <input id="tripOdo" type="number" inputmode="decimal" value="${newOdo}"></div>
+    <div class="row" style="gap:8px">
+      <button class="btn ghost grow" onclick="saveTrip(${JSON.stringify(r.km)},${r.dur},${r.max},'${r.vid}',false)">Just log it</button>
+      <button class="btn pri grow" onclick="saveTrip(${JSON.stringify(r.km)},${r.dur},${r.max},'${r.vid}',true)">Update odometer</button>
+    </div>`);
+}
+function saveTrip(kmDone,dur,max,vid,applyOdo){
+  const v=vehicleOf(vid);
+  DB.trips=DB.trips||[];
+  DB.trips.push({id:uid(),vehicleId:vid,date:today(),ts:Date.now(),
+    km:Number(kmDone.toFixed(2)),dur,max:Number(max.toFixed(0))});
+  if(DB.trips.length>400)DB.trips=DB.trips.slice(-400);
+  if(applyOdo&&v){
+    const fallback=Math.round(Number(v.odo||0)+kmDone);
+    const el=document.getElementById('tripOdo');
+    const raw=el?String(el.value).trim():'';
+    let n=raw===''?fallback:Number(raw);
+    // never let a blank or nonsense field wipe the odometer
+    if(!isFinite(n)||n<0)n=fallback;
+    if(n<Number(v.odo||0))n=fallback;
+    v.odo=Math.round(n);v.odoDate=today();
+    DB.odoLog.push({id:uid(),vehicleId:vid,date:today(),odo:v.odo});
+  }
+  save();closeSheet();
+  TRIP.dist=0;TRIP.pend=0;TRIP.anchor=null;TRIP.anchorT=0;TRIP.max=0;TRIP.speed=0;TRIP.pts=[];
+  paintDrive();
+  toast(applyOdo?'Logged · odometer now '+km(v.odo):'Trip logged');
+}
+window.saveTrip=saveTrip;
+
+function paintDrive(){
+  const el=document.getElementById('driveBody');if(!el)return;
+  const v=vehicleOf(TRIP.vid);
+  const sp=Math.round(TRIP.speed);
+  const over=TRIP.alertAt>0&&sp>TRIP.alertAt;
+  const pct=Math.min(1,sp/180);
+  const circ=2*Math.PI*86;
+  const statusTxt=!TRIP.on?'Ready'
+    :TRIP.fix?(TRIP.moving?'Recording':'Stopped — still recording')
+    :(TRIP.gpsErr||'Finding GPS…');
+  const statusCls=!TRIP.on?'idle':TRIP.fix?'ok':'soon';
+  el.innerHTML=`
+  <div class="dvtop">
+    <button class="dvx" onclick="closeDrive()" aria-label="Close">${TRIP.on?'':'✕'}</button>
+    <div class="dvveh">${esc(v?v.name:'—')}</div>
+    <div class="dvstat"><span class="dot" style="background:var(--${statusCls==='ok'?'ok':statusCls==='soon'?'soon':'idle'})"></span>${esc(statusTxt)}</div>
+  </div>
+
+  <div class="dial ${over?'over':''}">
+    <svg viewBox="0 0 200 200">
+      <circle cx="100" cy="100" r="86" class="trk"/>
+      <circle cx="100" cy="100" r="86" class="val" style="stroke-dasharray:${circ};stroke-dashoffset:${circ*(1-pct*0.75)};"/>
+    </svg>
+    <div class="dnum">
+      <div class="dsp num">${TRIP.on||sp?sp:'--'}</div>
+      <div class="dunit">KM/H</div>
+    </div>
+  </div>
+
+  <div class="dstats">
+    <div><div class="label">Distance</div><div class="num big">${(TRIP.dist/1000).toFixed(2)}<span class="u">km</span></div></div>
+    <div><div class="label">Time</div><div class="num big">${hhmmss(tripElapsed())}</div></div>
+    <div><div class="label">Top</div><div class="num big">${Math.round(TRIP.max)}<span class="u">km/h</span></div></div>
+  </div>
+
+  ${!TRIP.on?`
+    <div class="dvpick">
+      <div class="label" style="margin-bottom:7px">Vehicle</div>
+      <div class="chips" style="margin:0;padding:0">${DB.vehicles.map(x=>
+        `<button class="chip ${TRIP.vid===x.id?'on':''}" onclick="TRIP.vid='${x.id}';paintDrive()">${esc(x.name)}</button>`).join('')}</div>
+      <div class="f" style="margin-top:12px"><label>Warn me above (km/h) — 0 = off</label>
+        <input id="dvAlert" type="number" inputmode="numeric" value="${TRIP.alertAt||0}"
+          onchange="TRIP.alertAt=Math.max(0,Number(this.value)||0);DB.settings.driveAlert=TRIP.alertAt;save()">
+        <div class="hint">Buzzes once when you go over. Set it and put the phone away — don't read the screen while moving.</div></div>
+    </div>`:''}
+
+  <div class="dvact">
+    ${TRIP.on
+      ? `<button class="btn dang full" onclick="stopTrip()" style="padding:16px;font-size:16px">Stop &amp; save trip</button>`
+      : `<button class="btn pri full" onclick="startTrip()" style="padding:16px;font-size:16px">Start trip</button>`}
+    ${TRIP.acc!=null?`<div class="tiny dim" style="text-align:center;margin-top:9px">GPS accuracy ±${Math.round(TRIP.acc)} m${TRIP.on?' · screen stays awake':''}</div>`:''}
+  </div>`;
+}
+function recentTrips(vid,n){
+  return (vid?Q.trips(vid):DB.trips||[]).sort((a,b)=>b.ts-a.ts).slice(0,n||5);
+}
+
+
+/* ============================ TYRE TRACKER ============================ */
+// Standard pressures (PSI / bar). Each vehicle stores its own targets.
+// A tyre record: {id, vehicleId, position, target, current, date, treadMm, brand, notes}
+// Positions: FL,FR,RL,RR for cars; F,R for moto; S=spare
+function tyresOf(vid){return Q.tyres(vid)}
+function tyreState(tr,v){
+  // target from tyre record, fall back to vehicle defaults
+  const tgt=Number(tr.target||v.tyrePsi||32);
+  const cur=Number(tr.current||0);
+  const days=tr.date?Math.round((new Date()-new Date(tr.date+'T00:00:00'))/864e5):null;
+  const pctOff=tgt>0?Math.abs(cur-tgt)/tgt:0;
+  let state='idle';
+  if(cur>0){
+    if(cur<tgt*0.85||cur>tgt*1.15) state='over';        // >15% off
+    else if(pctOff>=0.06) state='soon';                   // 6-15% off
+    else state='ok';
+  }
+  // tread warning: legal minimum 1.6mm, warn below 3mm
+  const tread=Number(tr.treadMm||0);
+  const treadState=tread>0?(tread<1.6?'over':tread<3?'soon':'ok'):'idle';
+  const stale=days!=null&&days>30;
+  return {tgt,cur,state:stale&&state==='ok'?'soon':state,treadState,days,stale,pctOff};
+}
+function tyreIcon(pos){
+  const icons={FL:'↖',FR:'↗',RL:'↙',RR:'↘',F:'↑',R:'↓',S:'○'};
+  return icons[pos]||pos;
+}
+function viewTyres(vid){
+  const v=vehicleOf(vid);if(!v)return '';
+  const tyres=Q.tyres(vid);
+  const moto=v.type==='moto';
+  const positions=moto?['F','R']:['FL','FR','RL','RR'];
+  let h=`<div class="sect"><h2>Tyres</h2><div class="rule"></div>
+    <button class="btn sm ghost" onclick="editTyre(null,'${vid}')">+ Add</button></div>`;
+  if(!tyres.length){
+    h+=`<div class="empty small">No tyre records. Add your tyres to track pressure and tread depth.
+      <br><br>Target pressure (PSI) for this vehicle:<br>
+      <div class="row" style="gap:8px;margin-top:8px">
+        <input id="tyrePsi_${vid}" type="number" inputmode="decimal" value="${v.tyrePsi||32}" style="width:70px;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 10px;color:var(--text)">
+        <button class="btn sm" onclick="setTyrePsi('${vid}')">Save default</button>
+      </div></div>`;
+    return h;
+  }
+  // diagram: simple grid matching wheel positions
+  const grid=moto?['F','R']:['FL','FR','RL','RR'];
+  h+=`<div class="tyrediag ${moto?'moto':'car'}">`;
+  grid.forEach(pos=>{
+    const tr=tyres.find(t=>t.position===pos);
+    if(!tr){h+=`<div class="tyreslot empty" onclick="editTyre(null,'${vid}',${JSON.stringify(JSON.stringify(pos))})">
+      <span class="dim tiny">${pos}</span><span class="dim">+</span></div>`;return}
+    const st=tyreState(tr,v);
+    h+=`<div class="tyreslot st-${st.state}" onclick="editTyre('${tr.id}')">
+      <div class="tyrepos">${pos}</div>
+      <div class="tyrepsi num">${tr.current||'—'}</div>
+      <div class="tyretgt dim tiny">/${st.tgt} PSI</div>
+      ${st.treadState!=='idle'?`<div class="tyretread st-${st.treadState}">${tr.treadMm}mm</div>`:''}
+      ${st.stale?'<div class="tiny" style="color:var(--soon)">stale</div>':''}
+    </div>`;
+  });
+  // spare
+  const spare=tyres.find(t=>t.position==='S');
+  h+=`</div>`;
+  if(spare){const st=tyreState(spare,v);
+    h+=`<div class="card tap" onclick="editTyre('${spare.id}')"><div class="between">
+      <div><div class="label">Spare</div><div class="num small">${spare.current||'—'} / ${st.tgt} PSI</div></div>
+      <span class="pill st-${st.state}">${spare.current?st.state==='ok'?'Good':stateLabel[st.state]:'Not logged'}</span></div></div>`;}
+  // tread detail
+  const withTread=tyres.filter(t=>t.treadMm>0);
+  if(withTread.length){
+    h+=`<div class="sect"><h2>Tread</h2><div class="rule"></div></div>`;
+    withTread.forEach(tr=>{const st=tyreState(tr,v);
+      h+=`<div class="card tap" onclick="editTyre('${tr.id}')"><div class="between">
+        <div><div class="label">${tr.position}${tr.brand?' · '+esc(tr.brand):''}</div>
+        <div class="num">${tr.treadMm} mm</div></div>
+        <span class="pill st-${st.treadState}">${st.treadMm<1.6?'Replace now':st.treadState==='soon'?'<3mm warning':'OK'}</span>
+      </div></div>`;});
+  }
+  h+=`<div class="sect"><h2>Last checked</h2><div class="rule"></div></div>`;
+  tyres.filter(t=>t.date).sort((a,b)=>a.date>b.date?-1:1).slice(0,1).forEach(tr=>{
+    h+=`<div class="small muted" style="padding:4px 0">Most recent reading: ${fmtDate(tr.date)}</div>`;});
+  return h;
+}
+function setTyrePsi(vid){
+  const el=document.getElementById('tyrePsi_'+vid);
+  const v=vehicleOf(vid);if(!v||!el)return;
+  const n=Number(el.value);if(n>0&&n<120)v.tyrePsi=n;
+  save();render();toast('Default pressure saved');
+}
+window.setTyrePsi=setTyrePsi;
+function editTyre(id,vid,posJson){
+  const existing=id?(DB.tyres||[]).find(t=>t.id===id):null;
+  const v=vehicleOf(vid||(existing&&existing.vehicleId));
+  const moto=v&&v.type==='moto';
+  const defaultPos=posJson?JSON.parse(posJson):'FL';
+  const positions=moto?['F','R','S']:['FL','FR','RL','RR','S'];
+  form(id?'Edit tyre':'Add tyre',[
+    {k:'vehicleId',label:'Vehicle',type:'select',opts:DB.vehicles.map(v=>[v.id,v.name]),val:(existing&&existing.vehicleId)||vid},
+    {k:'position',label:'Position',type:'select',opts:positions.map(p=>[p,{FL:'Front left',FR:'Front right',RL:'Rear left',RR:'Rear right',F:'Front',R:'Rear',S:'Spare'}[p]||p]),val:(existing&&existing.position)||defaultPos},
+    {k:'brand',label:'Brand & size',val:existing&&existing.brand,ph:'Michelin Pilot Street 110/70-17'},
+    {k:'current',label:'Current pressure (PSI)',type:'number',val:existing&&existing.current,half:1},
+    {k:'target',label:'Target pressure (PSI)',type:'number',val:(existing&&existing.target)||(v&&v.tyrePsi)||32,half:1},
+    {k:'treadMm',label:'Tread depth (mm)',type:'number',val:existing&&existing.treadMm,half:1,hint:'Legal min: 1.6 mm. Warn at: 3 mm.'},
+    {k:'date',label:'Checked on',type:'date',val:(existing&&existing.date)||today(),half:1},
+    {k:'notes',label:'Notes',type:'textarea',val:existing&&existing.notes},
+  ],d=>{
+    DB.tyres=DB.tyres||[];
+    if(id)Object.assign(existing,d);
+    else DB.tyres.push(Object.assign({id:uid()},d));
+    toast('Tyre saved');
+  },id?`<div class="row" style="gap:8px;margin-bottom:12px">
+    <button class="btn dang sm grow" onclick="confirmDo('Remove this tyre record.',()=>{DB.tyres=DB.tyres.filter(t=>t.id!=='${id}')})">Delete</button></div>`:''
+  );
+}
+window.editTyre=editTyre;
+
+function tyreSummaryFor(vid){
+  const v=vehicleOf(vid);if(!v)return null;
+  const tyres=Q.tyres(vid);if(!tyres.length)return null;
+  const states=tyres.map(t=>tyreState(t,v));
+  const worst=states.some(s=>s.state==='over')?'over':states.some(s=>s.state==='soon')?'soon':'ok';
+  const lowTread=states.filter(s=>s.treadState==='over'||s.treadState==='soon').length;
+  return {worst,lowTread,count:tyres.length};
+}
+function tyreAlerts(){
+  const alerts=[];
+  DB.vehicles.forEach(v=>{
+    const s=tyreSummaryFor(v.id);
+    if(s&&(s.worst!=='ok'||s.lowTread))alerts.push({v,s});
+  });
+  return alerts;
+}
+
+/* ============================ CALENDAR + NOTIFICATIONS ============================ */
+function downloadICS(title,dateISO,desc){
+  const dt=dateISO.replace(/-/g,'');
+  const ics=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Garajku//EN','CALSCALE:GREGORIAN','BEGIN:VEVENT',
+    'UID:'+uid()+'@servis','DTSTAMP:'+new Date().toISOString().replace(/[-:]/g,'').split('.')[0]+'Z',
+    'DTSTART;VALUE=DATE:'+dt,'DTEND;VALUE=DATE:'+dt,'SUMMARY:'+title,'DESCRIPTION:'+String(desc||'').replace(/\n/g,'\\n'),
+    'BEGIN:VALARM','TRIGGER:-P7D','ACTION:DISPLAY','DESCRIPTION:'+title,'END:VALARM','END:VEVENT','END:VCALENDAR'].join('\r\n');
+  const b=new Blob([ics],{type:'text/calendar'}),u=URL.createObjectURL(b);
+  const a=document.createElement('a');a.href=u;a.download=title.replace(/[^a-z0-9]+/gi,'-').toLowerCase()+'.ics';a.click();
+  setTimeout(()=>URL.revokeObjectURL(u),3000);
+  toast('Calendar file saved — open it to add the reminder');
+}
+function icsFor(id){
+  const it=DB.items.find(i=>i.id===id),v=vehicleOf(it.vehicleId),x=statusOf(it,v);
+  const when=x.dueDate&&D(x.dueDate)>new Date()?x.dueDate:today();
+  downloadICS(`${v.name}: ${it.name}`,when,`Estimated ${money(x.cost)}. Due at ${x.nextKm?km(x.nextKm):'—'}. Logged in Garajku.`);
+}
+window.icsFor=icsFor;
+function icsDoc(id){const d=DB.docs.find(x=>x.id===id),v=vehicleOf(d.vehicleId);
+  downloadICS(`${v?v.name:''}: ${d.kind} expires`,d.expiry,`Renewal about ${money(d.cost)}.`)}
+window.icsDoc=icsDoc;
+function icsAll(){
+  const rows=allDue().filter(x=>x.state!=='idle'&&x.days<400);
+  if(!rows.length)return toast('Nothing due in the next year');
+  const ev=rows.map(x=>{const when=x.dueDate&&D(x.dueDate)>new Date()?x.dueDate:today();
+    return ['BEGIN:VEVENT','UID:'+uid()+'@servis','DTSTAMP:'+new Date().toISOString().replace(/[-:]/g,'').split('.')[0]+'Z',
+    'DTSTART;VALUE=DATE:'+when.replace(/-/g,''),'DTEND;VALUE=DATE:'+when.replace(/-/g,''),
+    'SUMMARY:'+x.vehicle.name+': '+x.item.name,'DESCRIPTION:Estimated '+money(x.cost),
+    'BEGIN:VALARM','TRIGGER:-P7D','ACTION:DISPLAY','DESCRIPTION:Service due','END:VALARM','END:VEVENT'].join('\r\n')}).join('\r\n');
+  const ics='BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Garajku//EN\r\n'+ev+'\r\nEND:VCALENDAR';
+  const b=new Blob([ics],{type:'text/calendar'}),u=URL.createObjectURL(b);
+  const a=document.createElement('a');a.href=u;a.download='garajku-schedule.ics';a.click();
+  toast(rows.length+' reminders exported');
+}
+window.icsAll=icsAll;
+async function askNotify(){
+  if(!('Notification' in window))return toast('This browser has no notifications');
+  const p=await Notification.requestPermission();
+  toast(p==='granted'?'Notifications on — you\'ll be told when you open the app':'Notifications blocked');
+  if(p==='granted')checkNotify(true);
+}
+window.askNotify=askNotify;
+function checkNotify(force){
+  if(!('Notification' in window)||Notification.permission!=='granted')return;
+  const last=DB.settings.lastNotify;
+  if(!force&&last===today())return;
+  const rows=allDue().filter(x=>x.state==='over'||x.state==='soon');
+  const docs=DB.docs.map(d=>({d,...docStatus(d)})).filter(x=>x.state==='over'||x.state==='soon');
+  if(!rows.length&&!docs.length)return;
+  const top=rows[0];
+  const body=[top?`${top.vehicle.name}: ${top.item.name} — ${relDays(top.days)}`:'',
+    (rows.length+docs.length>1)?`+${rows.length+docs.length-1} more waiting`:''].filter(Boolean).join('\n');
+  try{new Notification('Garajku — something needs doing',{body,icon:'icon-192.png',tag:'garajku'})}catch(e){}
+  DB.settings.lastNotify=today();save();
+}
+
+/* ============================ VIEW: MORE ============================ */
+function viewMore(){
+  const p=DB.settings.ai||{};
+  const nPhotos=DB.logs.reduce((s,l)=>s+((l.photoIds||[]).length),0);
+  return `
+  <div class="sect"><h2>Reminders</h2><div class="rule"></div></div>
+  <div class="card">
+    <div class="between"><div class="grow"><b>Phone notifications</b>
+      <div class="small muted">Shown when you open the app.${IOS&&!STANDALONE?' On iPhone these only work after you add it to the Home Screen.':''} For alerts that fire on their own, use the calendar export.</div></div></div>
+    <div class="row" style="gap:8px;margin-top:11px">
+      <button class="btn sm grow" onclick="askNotify()">${('Notification' in window)&&Notification.permission==='granted'?'Test notification':'Turn on'}</button>
+      <button class="btn sm grow" onclick="icsAll()">Export all to calendar</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="f2">
+      <div class="f"><label>Warn me … days ahead</label><input id="s_days" type="number" value="${DB.settings.soonDays}"></div>
+      <div class="f"><label>… or … km ahead</label><input id="s_km" type="number" value="${DB.settings.soonKm}"></div>
+    </div>
+    <div class="f"><label>Currency prefix</label><input id="s_cur" value="${esc(DB.settings.currency)}"></div>
+    <button class="btn sm full" onclick="saveSettings()">Save settings</button>
+  </div>
+
+  <div class="sect"><h2>AI</h2><div class="rule"></div></div>
+  <div class="card">
+    <div class="f"><label>Provider</label>
+      <select id="s_prov" onchange="DB.settings.ai.provider=this.value;save();render()">
+        ${Object.keys(PROVIDERS).map(k=>`<option value="${k}" ${aiCfg().id===k?'selected':''}>${esc(PROVIDERS[k].name)}</option>`).join('')}
+      </select>
+      <div class="hint">${esc(aiCfg().p.note||'')}</div></div>
+    ${aiCfg().p.key?`<div class="f"><label>API key</label>
+      <input id="s_key" type="password" value="${esc(aiCfg().key)}" placeholder="paste it here">
+      <div class="hint">Get one at <b>${esc(aiCfg().p.where||'your provider')}</b>. Stored on this phone only, never sent anywhere except that provider.</div></div>`:''}
+    <div class="f"><label>Model</label><input id="s_model" value="${esc(aiCfg().model)}" placeholder="${esc(aiCfg().p.model||'model name')}">
+      <div class="hint">Change this when a newer model comes out — no app update needed.</div></div>
+    ${aiCfg().id==='custom'?`<div class="f"><label>Base URL</label><input id="s_base" value="${esc(DB.settings.ai.baseUrl||'')}" placeholder="https://api.groq.com/openai/v1"></div>`:''}
+    <div class="row" style="gap:8px;margin-top:4px">
+      <button class="btn sm grow" onclick="saveSettings()">Save</button>
+      <button class="btn sm grow pri" onclick="testAI()">Test connection</button>
+    </div>
+    <div id="aiTest" class="hint" style="margin-top:8px"></div>
+    <hr class="sep">
+    <div class="tiny dim">Can this provider handle…</div>
+    <div class="row" style="gap:7px;margin-top:6px;flex-wrap:wrap">
+      <span class="pill" style="--c:var(--ok)">Text ✓</span>
+      <span class="pill" style="--c:var(${aiCan('vision')?'--ok':'--idle'})">Photos ${aiCan('vision')?'✓':'✗'}</span>
+      <span class="pill" style="--c:var(${aiCan('audio')?'--ok':'--idle'})">Engine sounds ${aiCan('audio')?'✓':'✗'}</span>
+      <span class="pill" style="--c:var(${aiCan('video')?'--ok':'--idle'})">Video ${aiCan('video')?'✓':'✗'}</span>
+    </div>
+  </div>
+
+  <div class="sect"><h2>Tyres</h2><div class="rule"></div></div>
+  <div class="card"><b>Tyre pressure &amp; tread</b>
+    <div class="small muted" style="margin-top:6px">Log current pressure and tread depth per wheel. Alerts show on the Due screen when pressure is off or tread is low.</div>
+    <div class="row" style="gap:8px;margin-top:11px">${DB.vehicles.map(v=>`<button class="btn sm grow" onclick="openVehicle('${v.id}')">${esc(v.name)}</button>`).join('')}</div></div>
+  <div class="sect"><h2>Setup</h2><div class="rule"></div></div>
+  <div class="card"><b>Re-anchor a schedule</b>
+    <div class="small muted" style="margin-top:6px">Fills in every item's last-done km and date from your odometer and service history.</div>
+    <div class="row" style="gap:8px;margin-top:11px">${DB.vehicles.map(v=>`<button class="btn sm grow" onclick="setupWizard('${v.id}')">${esc(v.name)}</button>`).join('')}</div></div>
+
+  <div class="sect"><h2>Your data</h2><div class="rule"></div></div>
+  <div class="card">
+    <div class="kv"><span class="muted">Vehicles</span><b>${DB.vehicles.length}</b></div>
+    <div class="kv"><span class="muted">Schedule items</span><b>${DB.items.length}</b></div>
+    <div class="kv"><span class="muted">Service records</span><b>${DB.logs.length}</b></div>
+    <div class="kv"><span class="muted">Receipt photos</span><b>${nPhotos}</b></div>
+    <div class="kv"><span class="muted">Modifications</span><b>${DB.mods.length}</b></div>
+    <div class="row" style="gap:8px;margin-top:12px">
+      <button class="btn sm grow" onclick="exportData()">Back up to file</button>
+      <button class="btn sm grow" onclick="importData()">Restore</button>
+    </div>
+    <div class="hint">Everything lives on this device only. Back up before changing phones.</div>
+  </div>
+  <div class="card">
+    <button class="btn dang full" onclick="confirmDo('Wipes every vehicle, record and photo on this device.',()=>{DB=seedDB();CURV=null})">Reset everything</button>
+  </div>
+  <p class="tiny dim" style="text-align:center;margin:18px 0 4px">Garajku · built for one garage · v2.0<br>Costs are estimates. Always check the owner's manual for your exact variant.</p>`;
+}
+function saveSettings(){
+  const g=id=>document.getElementById(id);
+  if(g('s_days'))DB.settings.soonDays=Number(g('s_days').value)||30;
+  if(g('s_km'))DB.settings.soonKm=Number(g('s_km').value)||500;
+  if(g('s_cur'))DB.settings.currency=g('s_cur').value||'RM';
+  const a=DB.settings.ai=DB.settings.ai||{keys:{},models:{}};
+  a.keys=a.keys||{};a.models=a.models||{};
+  if(g('s_prov'))a.provider=g('s_prov').value;
+  if(g('s_key'))a.keys[a.provider]=g('s_key').value.trim();
+  if(g('s_model'))a.models[a.provider]=g('s_model').value.trim();
+  if(g('s_base'))a.baseUrl=g('s_base').value.trim();
+  save();render();toast('Saved');
+}
+async function testAI(){
+  const out=document.getElementById('aiTest');
+  saveSettings();
+  const o=document.getElementById('aiTest');if(o){o.innerHTML='<span class="spin"></span> testing…'}
+  try{
+    const r=await callAI([{role:'user',text:'Reply with exactly: ready'}],{maxTokens:20});
+    const el=document.getElementById('aiTest');
+    if(el)el.innerHTML='<span style="color:var(--ok)">Connected — '+esc(String(r).trim().slice(0,40))+'</span>';
+  }catch(e){
+    const el=document.getElementById('aiTest');
+    if(el)el.innerHTML='<span style="color:var(--over)">'+esc(e.message)+'</span>';
+  }
+}
+window.testAI=testAI;
+window.saveSettings=saveSettings;
+function exportData(){
+  const b=new Blob([JSON.stringify(DB,null,1)],{type:'application/json'}),u=URL.createObjectURL(b);
+  const a=document.createElement('a');a.href=u;a.download='garajku-backup-'+today()+'.json';a.click();
+  toast('Backup saved (photos not included)');
+}
+window.exportData=exportData;
+function importData(){
+  const i=document.createElement('input');i.type='file';i.accept='application/json';
+  i.onchange=()=>{const f=i.files[0];if(!f)return;const r=new FileReader();
+    r.onload=()=>{try{
+      const d=JSON.parse(r.result);
+      if(!d||!Array.isArray(d.vehicles))throw 0;
+      const arr=x=>Array.isArray(x)?x:[];
+      d.vehicles=arr(d.vehicles);d.items=arr(d.items);d.mods=arr(d.mods);
+      d.docs=arr(d.docs);d.logs=arr(d.logs);d.odoLog=arr(d.odoLog);d.chat=arr(d.chat);d.trips=arr(d.trips);d.tyres=arr(d.tyres);
+      d.mods.forEach(m=>{m.priority=Math.max(0,Math.min(3,Math.round(Number(m.priority)||0)))});
+      d.settings=Object.assign({currency:'RM',soonDays:30,soonKm:500,ai:{provider:'builtin',keys:{},models:{},baseUrl:''}},d.settings||{});
+      DB=d;save();CURV=null;MFILTER='all';FILTER='all';render();
+      toast('Restored '+d.vehicles.length+' vehicles, '+d.mods.length+' mods');
+    }catch(e){toast('That file isn\'t a Garajku backup')}};
+    r.readAsText(f)};
+  i.click();
+}
+window.importData=importData;
+
+/* ============================ RENDER ============================ */
+const TITLES={due:['Today','Garajku'],garage:['Garage','Vehicles'],ask:['Mechanic','Ask'],log:['Records','History'],mods:['Build','Mods'],more:['Setup','More']};
+let _rendering=false;
+function render(){
+  if(_rendering)return;
+  _rendering=true;
+  try{renderInner()}catch(err){
+    const v=document.getElementById('view');
+    if(v)v.innerHTML=`<div class="card" style="border-color:#4A2A27">
+      <b>This screen hit a problem.</b>
+      <p class="small muted" style="margin:7px 0 0">${esc(err.message||'Unknown error')}</p>
+      <p class="small muted">Your data is safe. Back it up from More, then try again.</p>
+      <div class="row" style="gap:8px;margin-top:11px">
+        <button class="btn sm grow" onclick="go('due')">Go to Due</button>
+        <button class="btn sm grow" onclick="go('more')">Open More</button></div></div>`;
+    _rendering=false;
+    try{renderTabs()}catch(e){}
+  }
+}
+function renderInner(){
+  const v=document.getElementById('view');
+  let html='',t=TITLES[VIEW];
+  if(VIEW==='due')html=viewDue();
+  else if(VIEW==='garage'){html=viewGarage(); if(CURV&&vehicleOf(CURV)){t=['Vehicle',vehicleOf(CURV).name]}}
+  else if(VIEW==='ask')html=viewAsk();
+  else if(VIEW==='log')html=viewLog();
+  else if(VIEW==='mods')html=viewMods();
+  else html=viewMore();
+  document.getElementById('topEyebrow').textContent=t[0];
+  document.getElementById('topTitle').textContent=t[1];
+  const due=allDue().filter(x=>x.state==='over').length;
+  const btBadge = BT_CONNECTED
+    ? `<span class="pill" style="--c:var(--ok);margin-right:4px"><svg viewBox="0 0 24 24" style="width:10px;height:10px;stroke:currentColor;fill:none;stroke-width:2;display:inline-block;vertical-align:middle;margin-right:3px"><path d="m7 7 10 5-5 5V3l5 5L7 17"/></svg>BT</span>`
+    : '';
+  document.getElementById('topRight').innerHTML = (VIEW==='due'&&due)
+    ? btBadge + `<span class="pill st-over">${due} overdue</span>`
+    : btBadge;
+  v.className='wrap'+(VIEW==='ask'?' chat':'');
+  v.innerHTML=html;
+  if(VIEW!=='ask'){v.classList.remove('fade');void v.offsetWidth;v.classList.add('fade')}
+  _rendering=false;
+  renderTabs();
+  if(VIEW==='ask')askMount();
+  hydratePhotos();
+  document.getElementById('fab').style.display=(VIEW==='more'||VIEW==='ask')?'none':'grid';
+
+}
+window.render=render;
+document.getElementById('fab').onclick=()=>{
+  if(VIEW==='garage'&&CURV)return editItem(null,CURV);
+  if(VIEW==='garage')return editVehicle(null);
+  if(VIEW==='mods')return editMod(null);
+  if(VIEW==='log')return logForm({vehicleId:(DB.vehicles[0]||{}).id,date:today(),odo:(DB.vehicles[0]||{}).odo});
+  /* due view: quick actions */
+  if(!DB.vehicles.length)return editVehicle(null);
+  sheet(`<h3>Add</h3>
+   <div class="row" style="gap:8px;flex-wrap:wrap">
+     <button class="btn grow" onclick="closeSheet();logForm({vehicleId:DB.vehicles[0]&&DB.vehicles[0].id,date:today(),odo:DB.vehicles[0]&&DB.vehicles[0].odo})">Service record</button>
+     <button class="btn grow" onclick="closeSheet();updateOdo(DB.vehicles[0].id)">Odometer</button>
+   </div>
+   <div class="row" style="gap:8px;margin-top:8px">
+     <button class="btn grow" onclick="closeSheet();editItem(null,DB.vehicles[0].id)">Schedule item</button>
+     <button class="btn grow" onclick="closeSheet();editDoc(null,DB.vehicles[0].id)">Road tax / insurance</button>
+   </div>
+   <div class="row" style="gap:8px;margin-top:8px">
+     <button class="btn grow" onclick="closeSheet();editMod(null)">Modification</button>
+     <button class="btn grow" onclick="closeSheet();editVehicle(null)">Vehicle</button>
+   </div>`);
+};
+
+/* ============================ NATIVE BT STATUS ============================ */
+// Called by the Kotlin bridge when the car Bluetooth connects / disconnects
+window.nativeBtStatus = function(connected, deviceName) {
+  BT_CONNECTED = !!connected;
+  BT_DEVICE_NAME = deviceName || '';
+  // Update header badge without a full re-render
+  const due = allDue().filter(x=>x.state==='over').length;
+  const btBadge = BT_CONNECTED
+    ? `<span class="pill" style="--c:var(--ok);margin-right:4px"><svg viewBox="0 0 24 24" style="width:10px;height:10px;stroke:currentColor;fill:none;stroke-width:2;display:inline-block;vertical-align:middle;margin-right:3px"><path d="m7 7 10 5-5 5V3l5 5L7 17"/></svg>BT</span>`
+    : '';
+  const el = document.getElementById('topRight');
+  if (el) el.innerHTML = (VIEW==='due'&&due) ? btBadge+`<span class="pill st-over">${due} overdue</span>` : btBadge;
+  if (connected) toast('🔵 Car connected — ' + (deviceName||'Bluetooth device'));
+};
+window.nativeBtStatus = window.nativeBtStatus;
+
+/* ============================ BOOT ============================ */
+(async function(){
+  await load();
+  if(DB.settings.firstRun){DB.settings.firstRun=0;save()}
+  render();
+  checkNotify(false);
+  document.addEventListener('visibilitychange',()=>{
+    if(!document.hidden){
+      if(TRIP.on&&!TRIP.wake&&'wakeLock' in navigator){
+        navigator.wakeLock.request('screen').then(w=>{TRIP.wake=w}).catch(()=>{})}
+      if(TRIP.on)paintDrive();
+      else if(VIEW!=='ask')render();
+      checkNotify(false);
+    }
+  });
+  window.addEventListener('beforeunload',e=>{if(TRIP.on){e.preventDefault();e.returnValue=''}});
+  if('serviceWorker' in navigator&&location.protocol.startsWith('http')){try{navigator.serviceWorker.register('sw.js').catch(()=>{})}catch(e){}}
+})();
+</script>
+</body>
+</html>

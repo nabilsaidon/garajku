@@ -1,0 +1,47 @@
+name: Build iOS IPA
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'garajku-ios/**'
+      - 'shared/index.html'
+  workflow_dispatch:   # allow manual trigger from GitHub UI
+
+jobs:
+  build:
+    runs-on: macos-14   # Apple Silicon runner — fastest free option
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Copy shared index.html into iOS bundle
+        run: cp shared/index.html garajku-ios/garajku-ios/garajku-ios/index.html
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_16.0.app
+
+      - name: Build unsigned IPA
+        run: |
+          xcodebuild \
+            -project garajku-ios/garajku-ios/garajku-ios.xcodeproj \
+            -scheme garajku-ios \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination "generic/platform=iOS" \
+            CODE_SIGNING_ALLOWED=NO \
+            CONFIGURATION_BUILD_DIR=$PWD/build \
+            clean build
+
+          # Package into IPA
+          mkdir -p build/Payload
+          cp -r build/garajku-ios.app build/Payload/
+          cd build && zip -r ../garajku-unsigned.ipa Payload
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: garajku-ios-unsigned
+          path: garajku-unsigned.ipa
+          retention-days: 30
