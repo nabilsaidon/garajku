@@ -17,7 +17,9 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Copy shared index.html into iOS bundle
-        run: cp shared/index.html garajku-ios/garajku-ios/garajku-ios/index.html
+      run: |
+          mkdir -p garajku-ios/garajku-ios/garajku-ios
+          cp shared/index.html garajku-ios/garajku-ios/garajku-ios/index.html
 
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode_16.0.app
